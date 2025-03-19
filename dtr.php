@@ -4,8 +4,6 @@
 // Start session
 session_start();
 
-$username = $_SESSION['username'] ?? 'Guest';
-
 require_once "db_connect.php";
 
 // Check if user is logged in
@@ -13,6 +11,14 @@ if (!isset($_SESSION['username'])) {
     header('Location: index.php');
     exit;
 }
+
+$sql = "SELECT username FROM users WHERE id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $_SESSION['id']);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$username = $user['username'] ?? 'Guest';
 
 $year = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
 $month = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('n');
@@ -65,9 +71,26 @@ function generateCalendarPHP($year, $month)
 
         $date = sprintf('%04d-%02d-%02d', $year, $month, $currentDay);
         $today = ($date == date('Y-m-d')) ? ' bg-light' : '';
+        $hasEntries = false;
 
         $calendar .= "<td class='$today'>";
-        $calendar .= "<div class='day-header'>$currentDay</div>";
+        $calendar .= "<div class='day-header'>";
+        $calendar .= $currentDay;
+
+        // Get time records and check if entries exist
+        if (isset($_SESSION['id'])) {
+            $records = getTimeRecords($_SESSION['id'], $date);
+            if ($records && ($records['time_in_am'] || $records['time_out_am'] ||
+                $records['time_in_pm'] || $records['time_out_pm'])) {
+                $hasEntries = true;
+                $calendar .= "<button class='btn btn-sm btn-link delete-day' 
+                             onclick='deleteDay(\"$date\")'>
+                             <i class='fas fa-times'></i>
+                          </button>";
+            }
+        }
+
+        $calendar .= "</div>";
         $calendar .= "<div id='entry-$year-$month-$currentDay' class='entry-container'>";
 
         // Get time records for this date if they exist
@@ -128,6 +151,67 @@ function calculateTotalHours($user_id)
     return number_format($result['total'] ?? 0, 2);
 }
 
+// Add after calculateTotalHours function
+function calculateTotalHoursWithSaturday($user_id)
+{
+    global $conn;
+    $sql = "SELECT 
+            date, 
+            total_hours,
+            DAYOFWEEK(date) as day_of_week 
+            FROM dtr_records 
+            WHERE user_id = ?";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $totalHours = 0;
+    while ($row = $result->fetch_assoc()) {
+        // DAYOFWEEK returns 1 for Sunday, 7 for Saturday
+        if ($row['day_of_week'] == 7) { // Saturday
+            $totalHours += ($row['total_hours'] * 2);
+        } else {
+            $totalHours += $row['total_hours'];
+        }
+    }
+
+    return number_format($totalHours, 2);
+}
+
+// Add this function after calculateTotalHoursWithSaturday
+function calculateTotalHoursMinusLunch($user_id)
+{
+    global $conn;
+    $sql = "SELECT 
+            date, 
+            total_hours,
+            DAYOFWEEK(date) as day_of_week 
+            FROM dtr_records 
+            WHERE user_id = ?";
+
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    $totalHours = 0;
+    while ($row = $result->fetch_assoc()) {
+        // Subtract 1 hour lunch break
+        $hoursForDay = $row['total_hours'] - 1;
+
+        // Double hours for Saturday
+        if ($row['day_of_week'] == 7) { // Saturday
+            $hoursForDay = ($hoursForDay * 2);
+        }
+
+        $totalHours += $hoursForDay;
+    }
+
+    return number_format($totalHours, 2);
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -144,35 +228,72 @@ function calculateTotalHours($user_id)
         body {
             font-family: 'Poppins', sans-serif;
             margin: 0;
+            padding: 20px;
+            /* Added padding */
             background-color: #f8f9fa;
-            height: 100vh;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .container {
             display: flex;
-            height: 100%;
+            min-height: auto;
+            /* Changed from calc(100vh - 40px) */
             gap: 20px;
+            padding: 20px;
+            margin: 0 auto;
+            /* Center the container */
+            max-width: 1800px;
+            /* Limit maximum width */
+            background-color: white;
+            /* Add background */
+            border-radius: 15px;
+            /* Rounded corners */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            /* Add shadow */
         }
 
         .sidebar {
-            width: 40%;
-            padding: 20px;
+            width: 400px;
+            min-width: 400px;
+            height: auto;
+            /* Changed from calc(100vh - 80px) */
+            overflow-y: visible;
+            /* Changed from auto */
+            position: sticky;
+            top: 20px;
         }
 
         .main-content {
-            flex-grow: 1;
-            padding: 20px;
-            width: 100%;
+            flex: 1;
+            height: auto;
+            /* Changed from calc(100vh - 80px) */
+            overflow-y: visible;
+            /* Changed from auto */
+        }
+
+        .main-content .card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content .card-body {
+            flex: 1;
+            padding: 0;
+            overflow: auto;
         }
 
         .card {
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease-in-out;
+            margin-bottom: 20px;
+            height: auto;
+            /* Changed from 100% */
         }
 
-        .card:hover {
-            transform: translateY(-5px);
+        .calendar {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
         }
 
         .calendar th,
@@ -247,9 +368,17 @@ function calculateTotalHours($user_id)
 
         .calendar th {
             background-color: #f8f9fa;
-            padding: 10px;
-            font-weight: bold;
+            padding: 12px;
+            /* Increased from 10px */
+            font-weight: 600;
+            /* Increased from bold */
             border: 1px solid #dee2e6;
+            font-size: 1.1rem;
+            /* Added font size */
+            color: #495057;
+            /* Added text color */
+            text-transform: uppercase;
+            /* Optional: makes days uppercase */
         }
 
         .calendar td {
@@ -285,6 +414,59 @@ function calculateTotalHours($user_id)
             color: white;
             border-radius: 5px;
             text-align: center;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .edit-day {
+            padding: 2px 5px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .edit-day:hover {
+            opacity: 1;
+        }
+
+        td:hover .edit-day {
+            opacity: 1;
+        }
+
+        .delete-day {
+            padding: 2px;
+            font-size: 0.9rem;
+            color: #dc3545;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border: none;
+            background: none;
+            position: absolute;
+            top: 5px;
+            right: 5px;
+        }
+
+        .delete-day:hover {
+            color: #bb2d3b;
+        }
+
+        td:hover .delete-day {
+            opacity: 1;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 10px;
+            padding-right: 25px;
         }
     </style>
 </head>
@@ -337,7 +519,7 @@ function calculateTotalHours($user_id)
 
                         <form method="POST" class="d-flex align-items-center">
                             <label class="me-2">Time Out (PM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="17:00">
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="17:30">
                             <input type="hidden" name="time_type" value="time_out_pm">
                             <input type="hidden" name="date" value="">
 
@@ -355,6 +537,30 @@ function calculateTotalHours($user_id)
                 <div class="card-body text-center">
                     <h3 id="totalHours" class="fw-bold text-primary">
                         <?php echo calculateTotalHours($_SESSION['id']); ?> Hours
+                    </h3>
+                </div>
+            </div>
+
+            <!-- Add after the Total Hours Rendered card -->
+            <div class="card mt-3">
+                <div class="card-header text-center bg-warning text-white">
+                    <i class="fas fa-clock"></i> Rendered Hours w/ Sat X2
+                </div>
+                <div class="card-body text-center">
+                    <h3 id="totalHoursWithSaturday" class="fw-bold text-warning">
+                        <?php echo calculateTotalHoursWithSaturday($_SESSION['id']); ?> Hours
+                    </h3>
+                </div>
+            </div>
+
+            <!-- Add after the Rendered Hours w/ Sat X2 card -->
+            <div class="card mt-3">
+                <div class="card-header text-center bg-danger text-white">
+                    <i class="fas fa-clock"></i> Total Hours Minus Lunch Break
+                </div>
+                <div class="card-body text-center">
+                    <h3 id="totalHoursMinusLunch" class="fw-bold text-danger">
+                        <?php echo calculateTotalHoursMinusLunch($_SESSION['id']); ?> Hours
                     </h3>
                 </div>
             </div>
@@ -474,7 +680,7 @@ function calculateTotalHours($user_id)
             const timeInAM = document.querySelector('input[name="time_value"][value="08:00"]').value;
             const timeOutAM = document.querySelector('input[name="time_value"][value="12:00"]').value;
             const timeInPM = document.querySelector('input[name="time_value"][value="12:00"]').value;
-            const timeOutPM = document.querySelector('input[name="time_value"][value="17:00"]').value;
+            const timeOutPM = document.querySelector('input[name="time_value"][value="17:30"]').value;
 
             const data = {
                 date: date,
@@ -497,6 +703,14 @@ function calculateTotalHours($user_id)
                 .then(data => {
                     if (data.success) {
                         alert('All times saved successfully');
+
+                        // Update all total hours displays
+                        document.getElementById('totalHours').textContent =
+                            `${parseFloat(data.total_hours).toFixed(2)} Hours`;
+                        document.getElementById('totalHoursWithSaturday').textContent =
+                            `${parseFloat(data.total_hours_with_saturday).toFixed(2)} Hours`;
+                        document.getElementById('totalHoursMinusLunch').textContent =
+                            `${parseFloat(data.total_hours_minus_lunch).toFixed(2)} Hours`;
 
                         // Add this line to refresh the page after saving
                         window.location.reload();
@@ -545,7 +759,7 @@ function calculateTotalHours($user_id)
                             document.querySelector('input[name="time_value"][value="08:00"]').value = "08:00";
                             document.querySelector('input[name="time_value"][value="12:00"]').value = "12:00";
                             document.querySelector('input[name="time_value"][value="12:00"]').value = "12:00";
-                            document.querySelector('input[name="time_value"][value="17:00"]').value = "17:00";
+                            document.querySelector('input[name="time_value"][value="17:30"]').value = "17:30";
 
                             // Update total hours
                             document.getElementById('totalHours').textContent =
@@ -591,6 +805,90 @@ function calculateTotalHours($user_id)
                     .catch(error => {
                         console.error('Error:', error);
                         alert('Error resetting records');
+                    });
+            }
+        }
+
+        // Add this to your <script> section
+        function editDay(date) {
+            // Set the date picker to the selected date
+            document.getElementById('datePicker').value = date;
+
+            // Fetch existing records for this date
+            fetch(`get_time_records.php?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.records) {
+                        // Update time inputs with existing values
+                        if (data.records.time_in_am) {
+                            document.querySelector('input[name="time_value"][value="08:00"]').value =
+                                data.records.time_in_am.substring(0, 5);
+                        }
+                        if (data.records.time_out_am) {
+                            document.querySelector('input[name="time_value"][value="12:00"]').value =
+                                data.records.time_out_am.substring(0, 5);
+                        }
+                        if (data.records.time_in_pm) {
+                            document.querySelector('input[name="time_value"][value="12:00"]').value =
+                                data.records.time_in_pm.substring(0, 5);
+                        }
+                        if (data.records.time_out_pm) {
+                            document.querySelector('input[name="time_value"][value="17:30"]').value =
+                                data.records.time_out_pm.substring(0, 5);
+                        }
+                    }
+
+                    // Scroll to the time entry form
+                    document.querySelector('.sidebar').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching time records');
+                });
+        }
+
+        // Add this function to your <script> section
+        function deleteDay(date) {
+            if (confirm('Are you sure you want to delete all entries for this day?')) {
+                fetch('delete_day.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            date: date
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Show success message
+                            alert('Entries deleted successfully');
+
+                            // Update all total hours displays
+                            document.getElementById('totalHours').textContent =
+                                `${parseFloat(data.total_hours).toFixed(2)} Hours`;
+                            document.getElementById('totalHoursWithSaturday').textContent =
+                                `${parseFloat(data.total_hours_with_saturday).toFixed(2)} Hours`;
+                            document.getElementById('totalHoursMinusLunch').textContent =
+                                `${parseFloat(data.total_hours_minus_lunch).toFixed(2)} Hours`;
+
+                            // Get the date parts for the URL
+                            const dateParts = date.split('-');
+                            const year = dateParts[0];
+                            const month = dateParts[1];
+
+                            // Refresh the page with the current year and month
+                            window.location.href = `dtr.php?year=${year}&month=${month}`;
+                        } else {
+                            alert('Error deleting entries: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error deleting entries');
                     });
             }
         }

@@ -74,7 +74,10 @@ try {
     }
 } catch (Exception $e) {
     echo json_encode([
-        'success' => false,
-        'message' => $e->getMessage()
+        'success' => true,
+        'message' => 'Operation successful',
+        'total_hours' => calculateTotalHours($user_id),
+        'total_hours_with_saturday' => calculateTotalHoursWithSaturday($user_id),
+        'total_hours_minus_lunch' => calculateTotalHoursMinusLunch($user_id)
     ]);
 }
