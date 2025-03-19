@@ -175,7 +175,7 @@ $username = $_SESSION['username'];
 
             <div class="card mt-3">
                 <div class="card-header text-center bg-info text-white">
-                    <i class="fas fa-clock"></i> Total Hours Rendered
+                    <i class="fas fa-clock"></i> Total Hours Rendered w/o Sat X2
                 </div>
                 <div class="card-body text-center">
                     <h3 id="totalHours" class="fw-bold text-primary">0 Hours</h3>
