@@ -486,7 +486,12 @@ function calculateTotalHoursMinusLunch($user_id)
                     Welcome, <?php echo htmlspecialchars($username); ?>
                     <div id="realTimeClock" class="text-muted" style="font-size: 14px; color: black; margin-top: 5px;"></div>
                 </div>
-                <a href="logout.php" class="btn btn-danger">Logout</a>
+                <div class="d-flex flex-column gap-2">
+                    <button onclick="exportToExcel()" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
+                    <a href="logout.php" class="btn btn-danger">Logout</a>
+                </div>
             </div>
             <div class="card mt-3">
                 <div class="card-header text-center bg-dark text-white">Daily Time Record</div>
@@ -898,6 +903,11 @@ function calculateTotalHoursMinusLunch($user_id)
                         alert('Error deleting entries');
                     });
             }
+        }
+
+        // Add this to your <script> section
+        function exportToExcel() {
+            window.location.href = 'export_excel.php';
         }
     </script>
 </body>
