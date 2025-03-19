@@ -568,7 +568,7 @@ function calculateTotalHoursMinusLunch($user_id)
             <!-- Add after the Rendered Hours w/ Sat X2 card -->
             <div class="card mt-3">
                 <div class="card-header text-center bg-danger text-white">
-                    <i class="fas fa-clock"></i> Total Hours Minus Lunch Break
+                    <i class="fas fa-clock"></i> Total Hours Minus 1 HR Lunch Break
                 </div>
                 <div class="card-body text-center">
                     <h3 id="totalHoursMinusLunch" class="fw-bold text-danger">
