@@ -34,7 +34,14 @@ function generateCalendarPHP($year, $month)
     $calendar = '<div class="card-header">';
     $calendar .= '<div class="month-nav">';
     $calendar .= '<a href="?month=' . ($month - 1) . '&year=' . $year . '" class="btn btn-primary btn-sm"><i class="fas fa-chevron-left"></i></a>';
-    $calendar .= '<h4 class="mb-0">' . date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '</h4>';
+    $calendar .= '<div class="dropdown">';
+    $calendar .= '<h4 class="mb-0 dropdown-toggle" id="monthDropdown" data-bs-toggle="dropdown" aria-expanded="false">' . date('F Y', mktime(0, 0, 0, $month, 1, $year)) . '</h4>';
+    $calendar .= '<ul class="dropdown-menu" aria-labelledby="monthDropdown">';
+    for ($m = 1; $m <= 12; $m++) {
+        $calendar .= '<li><a class="dropdown-item" href="?month=' . $m . '&year=' . $year . '">' . date('F', mktime(0, 0, 0, $m, 1, $year)) . '</a></li>';
+    }
+    $calendar .= '</ul>';
+    $calendar .= '</div>';
     $calendar .= '<a href="?month=' . ($month + 1) . '&year=' . $year . '" class="btn btn-primary btn-sm"><i class="fas fa-chevron-right"></i></a>';
     $calendar .= '</div></div>';
 
