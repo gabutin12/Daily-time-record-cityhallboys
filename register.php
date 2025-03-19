@@ -30,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
 
             if ($insert_stmt->execute()) {
                 $_SESSION['registration_success'] = true;
-                header("Location: index.php");
+                header("Location: index.html");
                 exit();
             } else {
                 $registration_error = "❌ Registration failed. Please try again.";
@@ -168,7 +168,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
             </form>
 
             <div class="text-center mt-3">
-                <a href="index.php" class="btn btn-secondary w-100">Switch to Login</a>
+                <a href="index.html" class="btn btn-secondary w-100">Switch to Login</a>
             </div>
         </div>
     </div>
