@@ -10,7 +10,7 @@ require_once "db_connect.php";
 
 // Check if user is logged in
 if (!isset($_SESSION['username'])) {
-    header('Location: index.html');
+    header('Location: index.php');
     exit;
 }
 
