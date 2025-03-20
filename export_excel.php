@@ -7,6 +7,28 @@ if (!isset($_SESSION['id'])) {
 }
 
 // Add the calculation functions here
+function formatDecimalToTime($decimal)
+{
+    // If input is already in HH:MM format, return as is
+    if (is_string($decimal) && strpos($decimal, ':') !== false) {
+        return $decimal;
+    }
+
+    // Convert to float if string number
+    if (is_string($decimal)) {
+        $decimal = floatval($decimal);
+    }
+
+    // Handle null or invalid input
+    if ($decimal === null || !is_numeric($decimal)) {
+        return '0:00';
+    }
+
+    $hours = floor($decimal);
+    $minutes = round(($decimal - $hours) * 60);
+    return $hours . ':' . str_pad($minutes, 2, '0', STR_PAD_LEFT);
+}
+
 function calculateTotalHours($user_id)
 {
     global $conn;
@@ -15,7 +37,7 @@ function calculateTotalHours($user_id)
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
-    return number_format($result['total'] ?? 0, 2);
+    return formatDecimalToTime($result['total'] ?? 0);
 }
 
 function calculateTotalHoursWithSaturday($user_id)
@@ -36,7 +58,7 @@ function calculateTotalHoursWithSaturday($user_id)
             $totalHours += $row['total_hours'];
         }
     }
-    return number_format($totalHours, 2);
+    return formatDecimalToTime($totalHours);
 }
 
 function calculateTotalHoursMinusLunch($user_id)
@@ -57,23 +79,86 @@ function calculateTotalHoursMinusLunch($user_id)
         }
         $totalHours += $hoursForDay;
     }
-    return number_format($totalHours, 2);
+    return formatDecimalToTime($totalHours);
 }
 
-// Set headers for CSV download
-header('Content-Type: text/csv');
-header('Content-Disposition: attachment; filename="DTR_Export_' . date('Y-m-d') . '.csv"');
+// Set headers for Excel
+header('Content-Type: application/vnd.ms-excel');
+header('Content-Disposition: attachment; filename="DTR_Export_' . date('Y-m-d') . '.xls"');
 
-// Create output stream
-$output = fopen('php://output', 'w');
+// Start HTML output
+echo '
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .header {
+            background: #4F81BD;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 8px;
+            font-size: 14pt;
+        }
+        .subheader {
+            background: #DCE6F1;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid #95B3D7;
+            padding: 6px;
+            font-size: 12pt;
+        }
+        td {
+            border: 1px solid #95B3D7;
+            padding: 6px;
+            mso-number-format:"\\@";
+            font-size: 12pt;
+            vertical-align: middle;
+        }
+        .saturday {
+            background: #E6F3FF;
+        }
+        .total-section {
+            background: #4F81BD;
+            color: white;
+            font-weight: bold;
+            padding: 8px;
+            font-size: 12pt;
+        }
+        .time-cell {
+            text-align: center;
+        }
+        .total-row td {
+            font-weight: bold;
+            background: #F2F2F2;
+        }
+    </style>
+</head>
+<body>';
 
-// Add UTF-8 BOM for Excel
-fputs($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
-// Add headers
-fputcsv($output, ['Daily Time Record - ' . date('Y')]);
-fputcsv($output, []); // Empty row
-fputcsv($output, ['Date', 'Time In (AM)', 'Time Out (AM)', 'Time In (PM)', 'Time Out (PM)', 'Daily Hours', 'Is Saturday']);
+// Create table
+echo '<table>
+    <tr>
+        <td class="header" colspan="7">Daily Time Record - ' . date('Y') . '</td>
+    </tr>
+    <tr><td colspan="7"></td></tr>
+    <tr>
+        <td class="subheader">Date</td>
+        <td class="subheader">Time In (AM)</td>
+        <td class="subheader">Time Out (AM)</td>
+        <td class="subheader">Time In (PM)</td>
+        <td class="subheader">Time Out (PM)</td>
+        <td class="subheader">Daily Hours</td>
+        <td class="subheader">Is Saturday</td>
+    </tr>';
 
 // Get records
 $sql = "SELECT 
@@ -94,24 +179,39 @@ $stmt->execute();
 $result = $stmt->get_result();
 
 while ($record = $result->fetch_assoc()) {
-    fputcsv($output, [
-        date('Y-m-d', strtotime($record['date'])),
-        $record['time_in_am'] ? date('h:i A', strtotime($record['time_in_am'])) : '',
-        $record['time_out_am'] ? date('h:i A', strtotime($record['time_out_am'])) : '',
-        $record['time_in_pm'] ? date('h:i A', strtotime($record['time_in_pm'])) : '',
-        $record['time_out_pm'] ? date('h:i A', strtotime($record['time_out_pm'])) : '',
-        number_format($record['total_hours'], 2),
-        $record['day_of_week'] == 7 ? 'Yes' : 'No'
-    ]);
+    $rowClass = $record['day_of_week'] == 7 ? ' class="saturday"' : '';
+    echo "<tr$rowClass>
+        <td>" . date('Y-m-d', strtotime($record['date'])) . "</td>
+        <td class='time-cell'>" . ($record['time_in_am'] ? date('h:i A', strtotime($record['time_in_am'])) : '') . "</td>
+        <td class='time-cell'>" . ($record['time_out_am'] ? date('h:i A', strtotime($record['time_out_am'])) : '') . "</td>
+        <td class='time-cell'>" . ($record['time_in_pm'] ? date('h:i A', strtotime($record['time_in_pm'])) : '') . "</td>
+        <td class='time-cell'>" . ($record['time_out_pm'] ? date('h:i A', strtotime($record['time_out_pm'])) : '') . "</td>
+        <td class='time-cell'>" . formatDecimalToTime($record['total_hours']) . "</td>
+        <td class='time-cell'>" . ($record['day_of_week'] == 7 ? 'Yes' : 'No') . "</td>
+    </tr>";
 }
 
 // Add total hours summary
-fputcsv($output, []); // Empty row
-fputcsv($output, []); // Empty row
-fputcsv($output, ['Total Hours Summary']);
-fputcsv($output, ['Regular Hours:', calculateTotalHours($_SESSION['id'])]);
-fputcsv($output, ['Hours with Saturday x2:', calculateTotalHoursWithSaturday($_SESSION['id'])]);
-fputcsv($output, ['Hours Minus Lunch:', calculateTotalHoursMinusLunch($_SESSION['id'])]);
+echo '
+    <tr><td colspan="7"></td></tr>
+    <tr><td colspan="7"></td></tr>
+    <tr>
+        <td class="total-section" colspan="7">Total Hours Summary</td>
+    </tr>
+    <tr class="total-row">
+        <td colspan="2">Regular Hours:</td>
+        <td colspan="5">' . formatDecimalToTime(calculateTotalHours($_SESSION['id'])) . '</td>
+    </tr>
+    <tr class="total-row">
+        <td colspan="2">Hours with Saturday x2:</td>
+        <td colspan="5">' . formatDecimalToTime(calculateTotalHoursWithSaturday($_SESSION['id'])) . '</td>
+    </tr>
+    <tr class="total-row">
+        <td colspan="2">Hours Minus Lunch:</td>
+        <td colspan="5">' . formatDecimalToTime(calculateTotalHoursMinusLunch($_SESSION['id'])) . '</td>
+    </tr>
+</table>
+</body>
+</html>';
 
-fclose($output);
 exit;
