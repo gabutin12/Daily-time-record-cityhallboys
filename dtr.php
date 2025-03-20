@@ -78,44 +78,42 @@ function generateCalendarPHP($year, $month)
 
         $date = sprintf('%04d-%02d-%02d', $year, $month, $currentDay);
         $today = ($date == date('Y-m-d')) ? ' bg-light' : '';
-        $hasEntries = false;
+
+        // Get time records before checking them
+        $records = isset($_SESSION['id']) ? getTimeRecords($_SESSION['id'], $date) : null;
 
         $calendar .= "<td class='$today'>";
         $calendar .= "<div class='day-header'>";
         $calendar .= $currentDay;
 
-        // Get time records and check if entries exist
-        if (isset($_SESSION['id'])) {
-            $records = getTimeRecords($_SESSION['id'], $date);
-            if ($records && ($records['time_in_am'] || $records['time_out_am'] ||
-                $records['time_in_pm'] || $records['time_out_pm'])) {
-                $hasEntries = true;
-                $calendar .= "<button class='btn btn-sm btn-link delete-day' 
-                             onclick='deleteDay(\"$date\")'>
-                             <i class='fas fa-times'></i>
-                          </button>";
-            }
+        if ($records && ($records['time_in_am'] || $records['time_out_am'] ||
+            $records['time_in_pm'] || $records['time_out_pm'])) {
+            $calendar .= "<div class='button-container'>";
+            $calendar .= "<button class='edit-day btn btn-outline-success btn-sm' onclick='showEditModal(\"$date\")'>
+                            <i class='fas fa-edit'></i>
+                        </button>";
+            $calendar .= "<button class='delete-day btn btn-outline-danger btn-sm' onclick='deleteDay(\"$date\")'>
+                            <i class='fas fa-times'></i>
+                        </button>";
+            $calendar .= "</div>";
         }
 
         $calendar .= "</div>";
         $calendar .= "<div id='entry-$year-$month-$currentDay' class='entry-container'>";
 
-        // Get time records for this date if they exist
-        if (isset($_SESSION['id'])) {
-            $records = getTimeRecords($_SESSION['id'], $date);
-            if ($records) {
-                if ($records['time_in_am']) {
-                    $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_in_am'])) . "</div>";
-                }
-                if ($records['time_out_am']) {
-                    $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_out_am'])) . "</div>";
-                }
-                if ($records['time_in_pm']) {
-                    $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_in_pm'])) . "</div>";
-                }
-                if ($records['time_out_pm']) {
-                    $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_out_pm'])) . "</div>";
-                }
+        // Display time records
+        if ($records) {
+            if ($records['time_in_am']) {
+                $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_in_am'])) . "</div>";
+            }
+            if ($records['time_out_am']) {
+                $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_out_am'])) . "</div>";
+            }
+            if ($records['time_in_pm']) {
+                $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_in_pm'])) . "</div>";
+            }
+            if ($records['time_out_pm']) {
+                $calendar .= "<div class='calendar-entry'>" . date('h:i A', strtotime($records['time_out_pm'])) . "</div>";
             }
         }
 
@@ -432,14 +430,19 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         .edit-day {
-            padding: 2px 5px;
-            font-size: 0.8rem;
-            opacity: 0.7;
-            transition: opacity 0.3s;
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            border: 1px solid transparent;
         }
 
         .edit-day:hover {
-            opacity: 1;
+            background-color: #198754;
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         td:hover .edit-day {
@@ -447,20 +450,20 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         .delete-day {
-            padding: 2px;
+            padding: 4px 8px;
             font-size: 0.9rem;
-            color: #dc3545;
             opacity: 0;
-            transition: opacity 0.3s;
-            border: none;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            border: 1px solid transparent;
             background: none;
-            position: absolute;
-            top: 5px;
-            right: 5px;
         }
 
         .delete-day:hover {
-            color: #bb2d3b;
+            background-color: #dc3545;
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         td:hover .delete-day {
@@ -474,6 +477,13 @@ function calculateTotalHoursMinusLunch($user_id)
             position: relative;
             margin-bottom: 10px;
             padding-right: 25px;
+        }
+
+        .button-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 20px;
         }
     </style>
 </head>
@@ -909,7 +919,133 @@ function calculateTotalHoursMinusLunch($user_id)
         function exportToExcel() {
             window.location.href = 'export_excel.php';
         }
+
+        // Add to your <script> section
+        let currentEditDate = '';
+        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
+
+        function showEditModal(date) {
+            currentEditDate = date;
+
+            // Fetch existing records
+            fetch(`get_time_records.php?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.records) {
+                        // Update modal inputs with existing values
+                        document.querySelectorAll('#editTimeModal form').forEach(form => {
+                            const timeType = form.querySelector('[name="time_type"]').value;
+                            const timeInput = form.querySelector('[name="time_value"]');
+                            if (data.records[timeType]) {
+                                timeInput.value = data.records[timeType].substring(0, 5);
+                            }
+                        });
+
+                        // Show the modal
+                        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
+                        editModal.show();
+                    } else {
+                        throw new Error('No records found');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching time records');
+                });
+        }
+
+        function saveModalTimes() {
+            const forms = document.querySelectorAll('#editTimeModal form');
+            const times = {};
+
+            forms.forEach(form => {
+                const timeType = form.querySelector('[name="time_type"]').value;
+                times[timeType] = form.querySelector('[name="time_value"]').value;
+            });
+
+            const data = {
+                date: currentEditDate,
+                times: times
+            };
+
+            fetch('save_all_times.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        editModal.hide();
+                        // Get the date parts for the URL
+                        const dateParts = currentEditDate.split('-');
+                        const year = dateParts[0];
+                        const month = dateParts[1];
+
+                        // Refresh the page with the current year and month
+                        window.location.href = `dtr.php?year=${year}&month=${month}`;
+                    } else {
+                        alert('Error saving times: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving times');
+                });
+        }
     </script>
+
+    <!-- Add this before </body> -->
+    <div class="modal fade" id="editTimeModal" tabindex="-1" aria-labelledby="editTimeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTimeModalLabel">Edit Time Entries</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid gap-3">
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time In (AM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="08:00">
+                            <input type="hidden" name="time_type" value="time_in_am">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time Out (AM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="hidden" name="time_type" value="time_out_am">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time In (PM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="hidden" name="time_type" value="time_in_pm">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time Out (PM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="17:30">
+                            <input type="hidden" name="time_type" value="time_out_pm">
+                            <input type="hidden" name="date" value="">
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="saveModalTimes()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
