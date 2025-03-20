@@ -144,7 +144,15 @@ function getTimeRecords($user_id, $date)
     return $stmt->get_result()->fetch_assoc();
 }
 
-// Add this function after getTimeRecords()
+// Add this function at the top with other functions
+function formatHoursToTime($decimal_hours)
+{
+    $hours = floor($decimal_hours);
+    $minutes = round(($decimal_hours - $hours) * 60);
+    return sprintf("%d:%02d", $hours, $minutes);
+}
+
+// Update the calculation functions
 function calculateTotalHours($user_id)
 {
     global $conn;
@@ -153,10 +161,9 @@ function calculateTotalHours($user_id)
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result()->fetch_assoc();
-    return number_format($result['total'] ?? 0, 2);
+    return formatHoursToTime($result['total'] ?? 0);
 }
 
-// Add after calculateTotalHours function
 function calculateTotalHoursWithSaturday($user_id)
 {
     global $conn;
@@ -182,10 +189,9 @@ function calculateTotalHoursWithSaturday($user_id)
         }
     }
 
-    return number_format($totalHours, 2);
+    return formatHoursToTime($totalHours);
 }
 
-// Add this function after calculateTotalHoursWithSaturday
 function calculateTotalHoursMinusLunch($user_id)
 {
     global $conn;
@@ -214,7 +220,7 @@ function calculateTotalHoursMinusLunch($user_id)
         $totalHours += $hoursForDay;
     }
 
-    return number_format($totalHours, 2);
+    return formatHoursToTime($totalHours);
 }
 
 ?>
@@ -223,8 +229,6 @@ function calculateTotalHoursMinusLunch($user_id)
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Time Record</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -728,11 +732,11 @@ function calculateTotalHoursMinusLunch($user_id)
 
                         // Update all total hours displays
                         document.getElementById('totalHours').textContent =
-                            `${parseFloat(data.total_hours).toFixed(2)} Hours`;
+                            `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
                         document.getElementById('totalHoursWithSaturday').textContent =
-                            `${parseFloat(data.total_hours_with_saturday).toFixed(2)} Hours`;
+                            `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
                         document.getElementById('totalHoursMinusLunch').textContent =
-                            `${parseFloat(data.total_hours_minus_lunch).toFixed(2)} Hours`;
+                            `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
 
                         // Add this line to refresh the page after saving
                         window.location.reload();
@@ -785,7 +789,7 @@ function calculateTotalHoursMinusLunch($user_id)
 
                             // Update total hours
                             document.getElementById('totalHours').textContent =
-                                `${parseFloat(data.total_hours).toFixed(2)} Hours`;
+                                `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
 
                             alert('Time entries have been reset successfully');
                         } else {
@@ -891,11 +895,11 @@ function calculateTotalHoursMinusLunch($user_id)
 
                             // Update all total hours displays
                             document.getElementById('totalHours').textContent =
-                                `${parseFloat(data.total_hours).toFixed(2)} Hours`;
+                                `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
                             document.getElementById('totalHoursWithSaturday').textContent =
-                                `${parseFloat(data.total_hours_with_saturday).toFixed(2)} Hours`;
+                                `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
                             document.getElementById('totalHoursMinusLunch').textContent =
-                                `${parseFloat(data.total_hours_minus_lunch).toFixed(2)} Hours`;
+                                `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
 
                             // Get the date parts for the URL
                             const dateParts = date.split('-');
@@ -994,6 +998,13 @@ function calculateTotalHoursMinusLunch($user_id)
                     console.error('Error:', error);
                     alert('Error saving times');
                 });
+        }
+
+        // Add this function to your JavaScript
+        function formatHoursToTime(decimal_hours) {
+            const hours = Math.floor(decimal_hours);
+            const minutes = Math.round((decimal_hours - hours) * 60);
+            return `${hours}:${minutes.toString().padStart(2, '0')}`;
         }
     </script>
 
