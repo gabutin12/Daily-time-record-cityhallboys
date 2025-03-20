@@ -96,6 +96,10 @@ function generateCalendarPHP($year, $month)
                             <i class='fas fa-times'></i>
                         </button>";
             $calendar .= "</div>";
+        } else {
+            $calendar .= "<button class='add-day btn btn-outline-primary btn-sm' type='button' data-bs-toggle='modal' data-bs-target='#addTimeModal' onclick='initAddModal(\"$date\")'>
+                            <i class='fas fa-plus'></i>
+                        </button>";
         }
 
         $calendar .= "</div>";
@@ -489,6 +493,29 @@ function calculateTotalHoursMinusLunch($user_id)
             gap: 15px;
             margin-left: 20px;
         }
+
+        .add-day {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 8px 12px;
+            font-size: 1rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .add-day:hover {
+            background-color: #0d6efd;
+            color: white;
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        td:hover .add-day {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -600,6 +627,166 @@ function calculateTotalHoursMinusLunch($user_id)
         </div>
     </div>
 
+    <!-- Add this right after your existing script tags and before the modals HTML -->
+    <script>
+        // Global variables
+        // let currentEditDate = '';
+        // let addTimeModal;
+        let editTimeModal;
+
+        // Initialize modals when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap modals
+            addTimeModal = new bootstrap.Modal(document.getElementById('addTimeModal'));
+            editTimeModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
+        });
+
+        function initAddModal(date) {
+            currentEditDate = date;
+            // Update all date inputs in the add modal
+            document.querySelectorAll('#addTimeModal [name="date"]').forEach(input => {
+                input.value = date;
+            });
+        }
+
+        function saveAddTimes() {
+            const forms = document.querySelectorAll('#addTimeModal form');
+            const times = {};
+
+            forms.forEach(form => {
+                const timeType = form.querySelector('[name="time_type"]').value;
+                times[timeType] = form.querySelector('[name="time_value"]').value;
+            });
+
+            const data = {
+                date: currentEditDate,
+                times: times
+            };
+
+            fetch('save_all_times.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addTimeModal.hide();
+                        const dateParts = currentEditDate.split('-');
+                        const year = dateParts[0];
+                        const month = dateParts[1];
+                        window.location.href = `dtr.php?year=${year}&month=${month}`;
+                    } else {
+                        alert('Error saving times: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving times');
+                });
+        }
+    </script>
+
+    <!-- Add this before </body> -->
+    <div class="modal fade" id="editTimeModal" tabindex="-1" aria-labelledby="editTimeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTimeModalLabel">Edit Time Entries</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid gap-3">
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time In (AM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="08:00">
+                            <input type="hidden" name="time_type" value="time_in_am">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time Out (AM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="hidden" name="time_type" value="time_out_am">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time In (PM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="hidden" name="time_type" value="time_in_pm">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time Out (PM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="17:30">
+                            <input type="hidden" name="time_type" value="time_out_pm">
+                            <input type="hidden" name="date" value="">
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="saveModalTimes()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Time Modal -->
+    <div class="modal fade" id="addTimeModal" tabindex="-1" aria-labelledby="addTimeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTimeModalLabel">Add Time Entries</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-grid gap-3">
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time In (AM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="08:00">
+                            <input type="hidden" name="time_type" value="time_in_am">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time Out (AM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="hidden" name="time_type" value="time_out_am">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time In (PM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="hidden" name="time_type" value="time_in_pm">
+                            <input type="hidden" name="date" value="">
+                        </form>
+
+                        <form method="POST" class="d-flex align-items-center">
+                            <label class="me-2">Time Out (PM):</label>
+                            <input type="time" name="time_value" class="form-control time-input me-2" value="17:30">
+                            <input type="hidden" name="time_type" value="time_out_pm">
+                            <input type="hidden" name="date" value="">
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAddTimes()">
+                        <i class="fas fa-plus"></i> Add Times
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Add this inside your <script> tags
         document.addEventListener('DOMContentLoaded', function() {
@@ -1006,57 +1193,61 @@ function calculateTotalHoursMinusLunch($user_id)
             const minutes = Math.round((decimal_hours - hours) * 60);
             return `${hours}:${minutes.toString().padStart(2, '0')}`;
         }
+
+
+        let addTimeModal;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            addTimeModal = new bootstrap.Modal(document.getElementById('addTimeModal'));
+        });
+
+        function showAddModal(date) {
+            currentEditDate = date; // Reuse the existing variable
+            document.querySelectorAll('#addTimeModal [name="date"]').forEach(input => {
+                input.value = date;
+            });
+            addTimeModal.show();
+        }
+
+        function saveAddTimes() {
+            const forms = document.querySelectorAll('#addTimeModal form');
+            const times = {};
+
+            forms.forEach(form => {
+                const timeType = form.querySelector('[name="time_type"]').value;
+                times[timeType] = form.querySelector('[name="time_value"]').value;
+            });
+
+            const data = {
+                date: currentEditDate,
+                times: times
+            };
+
+            fetch('save_all_times.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addTimeModal.hide();
+                        const dateParts = currentEditDate.split('-');
+                        const year = dateParts[0];
+                        const month = dateParts[1];
+                        window.location.href = `dtr.php?year=${year}&month=${month}`;
+                    } else {
+                        alert('Error saving times: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving times');
+                });
+        }
     </script>
-
-    <!-- Add this before </body> -->
-    <div class="modal fade" id="editTimeModal" tabindex="-1" aria-labelledby="editTimeModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editTimeModalLabel">Edit Time Entries</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="d-grid gap-3">
-                        <form method="POST" class="d-flex align-items-center">
-                            <label class="me-2">Time In (AM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="08:00">
-                            <input type="hidden" name="time_type" value="time_in_am">
-                            <input type="hidden" name="date" value="">
-                        </form>
-
-                        <form method="POST" class="d-flex align-items-center">
-                            <label class="me-2">Time Out (AM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
-                            <input type="hidden" name="time_type" value="time_out_am">
-                            <input type="hidden" name="date" value="">
-                        </form>
-
-                        <form method="POST" class="d-flex align-items-center">
-                            <label class="me-2">Time In (PM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
-                            <input type="hidden" name="time_type" value="time_in_pm">
-                            <input type="hidden" name="date" value="">
-                        </form>
-
-                        <form method="POST" class="d-flex align-items-center">
-                            <label class="me-2">Time Out (PM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="17:30">
-                            <input type="hidden" name="time_type" value="time_out_pm">
-                            <input type="hidden" name="date" value="">
-                        </form>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-success" onclick="saveModalTimes()">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>
