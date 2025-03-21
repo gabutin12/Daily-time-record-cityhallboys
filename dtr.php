@@ -92,6 +92,9 @@ function generateCalendarPHP($year, $month)
             $calendar .= "<button class='edit-day btn btn-outline-success btn-sm' onclick='showEditModal(\"$date\")'>
                             <i class='fas fa-edit'></i>
                         </button>";
+            $calendar .= "<button class='journal-day btn btn-outline-info btn-sm' onclick='showJournalModal(\"$date\")'>
+                            <i class='fas fa-book'></i>
+                        </button>";
             $calendar .= "<button class='delete-day btn btn-outline-danger btn-sm' onclick='deleteDay(\"$date\")'>
                             <i class='fas fa-times'></i>
                         </button>";
@@ -516,6 +519,96 @@ function calculateTotalHoursMinusLunch($user_id)
         td:hover .add-day {
             opacity: 1;
         }
+
+        .journal-day {
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+
+        .journal-day:hover {
+            background-color: #0dcaf0;
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        td:hover .journal-day {
+            opacity: 1;
+        }
+
+        .nav-tabs .nav-link {
+            color: #495057;
+            cursor: pointer;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        .preview-container {
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            min-height: 400px;
+        }
+
+        #previewText {
+            white-space: pre-wrap;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        /* Add to your existing styles */
+        .preview-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #previewDate,
+        #previewDepartment {
+            min-width: 150px;
+            padding: 0 5px;
+        }
+
+        #previewText {
+            min-height: 200px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+            /* Changed from center */
+        }
+
+        .journal-text {
+            min-height: 100px;
+            /* Increase this value to make the cell taller */
+            white-space: pre-wrap;
+            line-height: 1.4;
+            padding: 10px;
+            font-size: 11px;
+            text-align: left;
+            margin-bottom: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            /* Change this from margin: 10px 0 */
+            font-size: 11px;
+        }
     </style>
 </head>
 
@@ -531,8 +624,8 @@ function calculateTotalHoursMinusLunch($user_id)
                     <button onclick="exportToExcel()" class="btn btn-success">
                         <i class="fas fa-file-excel"></i> Export to Excel
                     </button>
-                    <button onclick="printCurrentMonth()" class="btn btn-info">
-                        <i class="fas fa-print"></i> Print Month
+                    <button onclick="printAllJournals()" class="btn btn-info">
+                        <i class="fas fa-book"></i> Print All Journals
                     </button>
                     <button onclick="printAllMonths()" class="btn btn-primary">
                         <i class="fas fa-print"></i> Print All Months
@@ -857,6 +950,541 @@ function calculateTotalHoursMinusLunch($user_id)
                     alert('Error generating print view');
                 });
         }
+
+        // Add these functions to your existing JavaScript
+        let journalModal;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            journalModal = new bootstrap.Modal(document.getElementById('journalModal'));
+        });
+
+        function showJournalModal(date) {
+            document.getElementById('journalDate').value = date;
+            journalModal.show();
+        }
+
+        function submitJournal() {
+            const date = document.getElementById('journalDate').value;
+            const text = document.getElementById('journalText').value;
+
+            fetch('save_journal.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        text: text
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Journal entry saved successfully');
+                        journalModal.hide();
+                    } else {
+                        alert('Error saving journal entry: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving journal entry');
+                });
+        }
+
+        // Add this function in your <script> section
+        function refreshCalendar() {
+            // Get current date from datepicker
+            const currentDate = document.getElementById('datePicker').value;
+
+            // Reload the page with current year and month
+            const date = new Date(currentDate);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+
+            window.location.href = `dtr.php?year=${year}&month=${month}`;
+        }
+
+        // Add this function in your <script> section
+        function saveAllTimes() {
+            const date = document.getElementById('datePicker').value;
+            const timeInAM = document.querySelector('input[name="time_value"][value="08:00"]').value;
+            const timeOutAM = document.querySelector('input[name="time_value"][value="12:00"]').value;
+            const timeInPM = document.querySelector('input[name="time_value"][value="12:00"]').value;
+            const timeOutPM = document.querySelector('input[name="time_value"][value="17:30"]').value;
+
+            const data = {
+                date: date,
+                times: {
+                    time_in_am: timeInAM,
+                    time_out_am: timeOutAM,
+                    time_in_pm: timeInPM,
+                    time_out_pm: timeOutPM
+                }
+            };
+
+            fetch('save_all_times.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('All times saved successfully');
+
+                        // Update all total hours displays
+                        document.getElementById('totalHours').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
+                        document.getElementById('totalHoursWithSaturday').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
+                        document.getElementById('totalHoursMinusLunch').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
+
+                        // Add this line to refresh the page after saving
+                        window.location.reload();
+
+                        // Alternatively, you could use your existing refreshCalendar function:
+                        // refreshCalendar();
+                    } else {
+                        alert('Error saving times: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving times');
+                });
+        }
+
+        // Add this function in your <script> section
+        function resetAllTimes() {
+            if (confirm('Are you sure you want to reset all time entries? This action cannot be undone.')) {
+                const selectedDate = document.getElementById('datePicker').value;
+
+                fetch('reset_times.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            date: selectedDate
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Clear calendar entry for the selected date
+                            const dateParts = selectedDate.split('-');
+                            const year = dateParts[0];
+                            const month = dateParts[1];
+                            const day = dateParts[2];
+
+                            const entryContainer = document.querySelector(`#entry-${year}-${month}-${day}`);
+                            if (entryContainer) {
+                                entryContainer.innerHTML = '';
+                            }
+
+                            // Reset all time inputs to default values
+                            document.querySelector('input[name="time_value"][value="08:00"]').value = "08:00";
+                            document.querySelector('input[name="time_value"][value="12:00"]').value = "12:00";
+                            document.querySelector('input[name="time_value"][value="12:00"]').value = "12:00";
+                            document.querySelector('input[name="time_value"][value="17:30"]').value = "17:30";
+
+                            // Update total hours
+                            document.getElementById('totalHours').textContent =
+                                `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
+
+                            alert('Time entries have been reset successfully');
+                        } else {
+                            alert('Error resetting times: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error resetting times');
+                    });
+            }
+        }
+
+        // Add this function in your <script> section
+        function resetAllTimes() {
+            if (confirm('Are you sure you want to reset all time records? This cannot be undone.')) {
+                fetch('reset_entries.php', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Clear all calendar entries
+                            document.querySelectorAll('.entry-container').forEach(container => {
+                                container.innerHTML = '';
+                            });
+
+                            // Reset total hours
+                            document.getElementById('totalHours').textContent = '0.00 Hours';
+
+                            // Refresh the calendar
+                            refreshCalendar();
+
+                            alert('All time records have been reset');
+                        } else {
+                            alert('Error resetting records: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error resetting records');
+                    });
+            }
+        }
+
+        // Add this to your <script> section
+        function editDay(date) {
+            // Set the date picker to the selected date
+            document.getElementById('datePicker').value = date;
+
+            // Fetch existing records for this date
+            fetch(`get_time_records.php?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.records) {
+                        // Update time inputs with existing values
+                        if (data.records.time_in_am) {
+                            document.querySelector('input[name="time_value"][value="08:00"]').value =
+                                data.records.time_in_am.substring(0, 5);
+                        }
+                        if (data.records.time_out_am) {
+                            document.querySelector('input[name="time_value"][value="12:00"]').value =
+                                data.records.time_out_am.substring(0, 5);
+                        }
+                        if (data.records.time_in_pm) {
+                            document.querySelector('input[name="time_value"][value="12:00"]').value =
+                                data.records.time_in_pm.substring(0, 5);
+                        }
+                        if (data.records.time_out_pm) {
+                            document.querySelector('input[name="time_value"][value="17:30"]').value =
+                                data.records.time_out_pm.substring(0, 5);
+                        }
+                    }
+
+                    // Scroll to the time entry form
+                    document.querySelector('.sidebar').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching time records');
+                });
+        }
+
+        // Add this function to your <script> section
+        function deleteDay(date) {
+            if (confirm('Are you sure you want to delete all entries for this day?')) {
+                fetch('delete_day.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            date: date
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Show success message
+                            alert('Entries deleted successfully');
+
+                            // Update all total hours displays
+                            document.getElementById('totalHours').textContent =
+                                `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
+                            document.getElementById('totalHoursWithSaturday').textContent =
+                                `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
+                            document.getElementById('totalHoursMinusLunch').textContent =
+                                `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
+
+                            // Get the date parts for the URL
+                            const dateParts = date.split('-');
+                            const year = dateParts[0];
+                            const month = dateParts[1];
+
+                            // Refresh the page with the current year and month
+                            window.location.href = `dtr.php?year=${year}&month=${month}`;
+                        } else {
+                            alert('Error deleting entries: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error deleting entries');
+                    });
+            }
+        }
+
+        // Add this to your <script> section
+        function exportToExcel() {
+            window.location.href = 'export_excel.php';
+        }
+
+        // Add to your <script> section
+        let currentEditDate = '';
+        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
+
+        function showEditModal(date) {
+            currentEditDate = date;
+
+            // Fetch existing records
+            fetch(`get_time_records.php?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.records) {
+                        // Update modal inputs with existing values
+                        document.querySelectorAll('#editTimeModal form').forEach(form => {
+                            const timeType = form.querySelector('[name="time_type"]').value;
+                            const timeInput = form.querySelector('[name="time_value"]');
+                            if (data.records[timeType]) {
+                                timeInput.value = data.records[timeType].substring(0, 5);
+                            }
+                        });
+
+                        // Show the modal
+                        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
+                        editModal.show();
+                    } else {
+                        throw new Error('No records found');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error fetching time records');
+                });
+        }
+
+        function saveModalTimes() {
+            const forms = document.querySelectorAll('#editTimeModal form');
+            const times = {};
+
+            forms.forEach(form => {
+                const timeType = form.querySelector('[name="time_type"]').value;
+                times[timeType] = form.querySelector('[name="time_value"]').value;
+            });
+
+            const data = {
+                date: currentEditDate,
+                times: times
+            };
+
+            fetch('save_all_times.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        editModal.hide();
+                        // Get the date parts for the URL
+                        const dateParts = currentEditDate.split('-');
+                        const year = dateParts[0];
+                        const month = dateParts[1];
+
+                        // Refresh the page with the current year and month
+                        window.location.href = `dtr.php?year=${year}&month=${month}`;
+                    } else {
+                        alert('Error saving times: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving times');
+                });
+        }
+
+        // Add this function to your JavaScript
+        function formatHoursToTime(decimal_hours) {
+            const hours = Math.floor(decimal_hours);
+            const minutes = Math.round((decimal_hours - hours) * 60);
+            return `${hours}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+            addTimeModal = new bootstrap.Modal(document.getElementById('addTimeModal'));
+        });
+
+        function showAddModal(date) {
+            currentEditDate = date; // Reuse the existing variable
+            document.querySelectorAll('#addTimeModal [name="date"]').forEach(input => {
+                input.value = date;
+            });
+            addTimeModal.show();
+        }
+
+        function saveAddTimes() {
+            const forms = document.querySelectorAll('#addTimeModal form');
+            const times = {};
+
+            forms.forEach(form => {
+                const timeType = form.querySelector('[name="time_type"]').value;
+                times[timeType] = form.querySelector('[name="time_value"]').value;
+            });
+
+            const data = {
+                date: currentEditDate,
+                times: times
+            };
+
+            fetch('save_all_times.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addTimeModal.hide();
+                        const dateParts = currentEditDate.split('-');
+                        const year = dateParts[0];
+                        const month = dateParts[1];
+                        window.location.href = `dtr.php?year=${year}&month=${month}`;
+                    } else {
+                        alert('Error saving times: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving times');
+                });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const dateString = now.toLocaleDateString();
+            document.getElementById('realTimeClock').innerHTML = `${dateString} ${timeString}`;
+        }
+
+        // Update clock every second
+        setInterval(updateClock, 1000);
+        updateClock(); // Initial call
+
+        function printCurrentMonth() {
+            const year = new URLSearchParams(window.location.search).get('year') || new Date().getFullYear();
+            const month = new URLSearchParams(window.location.search).get('month') || (new Date().getMonth() + 1);
+
+            const content = document.querySelector('.main-content').innerHTML;
+            const printWindow = window.open('', '', 'height=600,width=800');
+
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>DTR - ${document.querySelector('#monthDropdown').textContent}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <style>
+                            @page { size: landscape; }
+                            body {
+                                padding: 20px;
+                                font-family: Arial, sans-serif;
+                            }
+                            .calendar {
+                                width: 100%;
+                                border-collapse: collapse;
+                            }
+                            .calendar th, .calendar td {
+                                border: 1px solid #dee2e6;
+                                padding: 8px;
+                            }
+                            .calendar th {
+                                background-color: #f8f9fa;
+                                font-weight: bold;
+                            }
+                            .calendar-entry {
+                                background: #198754;
+                                color: white;
+                                padding: 4px;
+                                margin: 2px 0;
+                                border-radius: 4px;
+                                font-size: 12px;
+                            }
+                            .summary-section {
+                                margin-top: 20px;
+                                padding: 15px;
+                                border: 1px solid #dee2e6;
+                                border-radius: 5px;
+                            }
+                            .header-section {
+                                text-align: center;
+                                margin-bottom: 20px;
+                            }
+                            .header-section h2 {
+                                color: #333;
+                                margin-bottom: 5px;
+                            }
+                            .header-section p {
+                                color: #666;
+                                margin: 0;
+                            }
+                            @media print {
+                                .no-print { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header-section">
+                            <h2>Daily Time Record</h2>
+                            <p>${document.querySelector('#monthDropdown').textContent}</p>
+                            <p>Employee: ${document.querySelector('.card-header').textContent.split(',')[1]}</p>
+                        </div>
+                        ${content}
+                        <div class="summary-section">
+                            <h4>Monthly Summary</h4>
+                            <p>Days Worked: ${document.getElementById('daysWorked').textContent}</p>
+                            <p>Average Hours/Day: ${document.getElementById('avgHours').textContent}</p>
+                            <p>Saturdays Worked: ${document.getElementById('saturdaysWorked').textContent}</p>
+                            <p>Total Hours: ${document.getElementById('totalHours').textContent}</p>
+                            <p>Total Hours with Saturday x2: ${document.getElementById('totalHoursWithSaturday').textContent}</p>
+                            <p>Total Hours Minus Lunch: ${document.getElementById('totalHoursMinusLunch').textContent}</p>
+                        </div>
+                    </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch (e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveAllTimes();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        printCurrentMonth();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportToExcel();
+                        break;
+                }
+            }
+        });
     </script>
 
     <!-- Add this before </body> -->
@@ -956,6 +1584,81 @@ function calculateTotalHoursMinusLunch($user_id)
             </div>
         </div>
     </div>
+
+    <!-- Update the journal modal HTML -->
+    <div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="journalModalLabel">Write Journal Entry</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Add tabs for Write/Preview -->
+                    <ul class="nav nav-tabs mb-3" id="journalTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="write-tab" data-bs-toggle="tab" data-bs-target="#write" type="button">Write</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview" type="button">Preview</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="write">
+                            <form id="journalForm">
+                                <input type="hidden" id="journalDate" name="date">
+                                <div class="mb-3">
+                                    <label for="department" class="form-label">Department:</label>
+                                    <input type="text" class="form-control" id="department" name="department" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="journalText" class="form-label">Write your Journal/Diary below:</label>
+                                    <textarea class="form-control" id="journalText" name="journalText" rows="10" required
+                                        onkeyup="updatePreview()"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="tab-pane fade" id="preview">
+                            <div class="preview-container border p-4">
+                                <div class="row border-bottom pb-3 mb-3">
+                                    <div class="col-6">
+                                        <div class="d-flex">
+                                            <strong class="me-2">Date:</strong>
+                                            <span id="previewDate" class="border-bottom border-dark"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="d-flex">
+                                            <strong class="me-2">Department:</strong>
+                                            <span id="previewDepartment" class="border-bottom border-dark"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <strong class="d-block border-bottom pb-2 mb-3">Journal Entry:</strong>
+                                    <div id="previewText" class="p-3 border rounded bg-light"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="btn-group me-auto">
+                        <button type="button" class="btn btn-warning" onclick="clearJournal()">
+                            <i class="fas fa-eraser"></i> Clear
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="deleteJournal()">
+                            <i class="fas fa-trash"></i> Delete Entry
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="submitJournal()">Submit Journal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Add this inside your <script> tags
@@ -1281,9 +1984,7 @@ function calculateTotalHoursMinusLunch($user_id)
             window.location.href = 'export_excel.php';
         }
 
-        // Add to your <script> section
-        let currentEditDate = '';
-        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
+
 
         function showEditModal(date) {
             currentEditDate = date;
@@ -1537,6 +2238,261 @@ function calculateTotalHoursMinusLunch($user_id)
                 }
             }
         });
+
+
+        function updatePreview() {
+            // Update preview content
+            const date = new Date(document.getElementById('journalDate').value).toLocaleDateString();
+            const department = document.getElementById('department').value;
+            const text = document.getElementById('journalText').value;
+
+            document.getElementById('previewDate').textContent = date;
+            document.getElementById('previewDepartment').textContent = department;
+            document.getElementById('previewText').innerHTML = text.replace(/\n/g, '<br>');
+        }
+
+        function showJournalModal(date) {
+            document.getElementById('journalDate').value = date;
+
+            // Check if there's an existing journal entry
+            fetch(`get_journal.php?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.journal) {
+                        document.getElementById('department').value = data.journal.department;
+                        document.getElementById('journalText').value = data.journal.text;
+                        updatePreview();
+                    } else {
+                        // Clear form for new entry
+                        document.getElementById('department').value = '';
+                        document.getElementById('journalText').value = '';
+                        updatePreview();
+                    }
+                    journalModal.show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading journal entry');
+                });
+        }
+
+        function submitJournal() {
+            const date = document.getElementById('journalDate').value;
+            const department = document.getElementById('department').value;
+            const text = document.getElementById('journalText').value;
+
+            fetch('save_journal.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        department: department,
+                        text: text
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Journal entry saved successfully');
+                        journalModal.hide();
+                    } else {
+                        alert('Error saving journal entry: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error saving journal entry');
+                });
+        }
+
+        function clearJournal() {
+            // Clear form inputs without deleting from database
+            document.getElementById('department').value = '';
+            document.getElementById('journalText').value = '';
+            updatePreview();
+        }
+
+        function deleteJournal() {
+            if (confirm('Are you sure you want to delete this journal entry? This cannot be undone.')) {
+                const date = document.getElementById('journalDate').value;
+
+                fetch('delete_journal.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            date: date
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Journal entry deleted successfully');
+                            journalModal.hide();
+                            clearJournal();
+                        } else {
+                            alert('Error deleting journal entry: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error deleting journal entry');
+                    });
+            }
+        }
+
+        function printAllJournals() {
+            const printWindow = window.open('', '', 'height=600,width=800');
+
+            fetch('get_all_journals.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Group journals into sets of 3
+                        const groupedJournals = [];
+                        for (let i = 0; i < data.journals.length; i += 3) {
+                            groupedJournals.push(data.journals.slice(i, i + 3));
+                        }
+
+                        printWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Practicum Journal/Diary</title>
+                            <style>
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    padding: 20px;
+                                    max-width: 1000px;
+                                    margin: 0 auto;
+                                }
+                                .page {
+                                    page-break-after: always;
+                                }
+                                .main-header {
+                                    text-align: center;
+                                    margin-bottom: 50px;
+                                    padding: 20px;
+                                }
+                                .main-header h1 {
+                                    font-size: 24px;
+                                    margin: 0;
+                                }
+                                .journal-entry {
+                                    margin-bottom: 0px;
+                                }
+                                table {
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-bottom: 5px;
+                                    font-size: 12px;
+                                }
+                                th, td {
+                                    border: 1px solid black;
+                                    padding: 8px;
+                                }
+                                .signature-row {
+                                    display: grid;
+                                    grid-template-columns: repeat(3, 1fr);
+                                    gap: 10px;
+                                    margin-top: 20px;
+                                    text-align: center;
+                                    font-size: 12px;
+                                }
+                                .signature-line {
+                                    border-top: 1px solid black;
+                                    margin-top: 20px;
+                                    padding-top: 5px;
+                                }
+                                .journal-text {
+                                    min-height: 90px;
+                                    white-space: pre-wrap;
+                                    line-height: 1.4;
+                                    padding: 10px;
+                                    font-size: 12px;
+                                }
+                                @media print {
+                                    .page {
+                                        page-break-after: always;
+                                    }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <!-- First page with main header -->
+                            <div class="page">
+                                <div class="main-header">
+                                    <h1>Practicum Journal/Diary</h1>
+                                </div>
+                            </div>
+
+                            <!-- Journal entries pages -->
+                            ${groupedJournals.map(group => `
+                                <div class="page">
+                                    ${group.map(journal => `
+                                        <div class="journal-entry">
+                                            <table>
+                                                <tr>
+                                                    <th width="15%">Date:</th>
+                                                    <td width="20%">${new Date(journal.date).toLocaleDateString()}</td>
+                                                    <th width="10%">Department:</th>
+                                                    <td width="55%" colspan="5">${journal.department}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Time in (start):</th>
+                                                    <td>${journal.time_in_am || ''}</td>
+                                                    <th>Time out:</th>
+                                                    <td>${journal.time_out_am || ''}</td>
+                                                    <th>Time in:</th>
+                                                    <td>${journal.time_in_pm || ''}</td>
+                                                    <th>Time out (end):</th>
+                                                    <td>${journal.time_out_pm || ''}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th colspan="8" style="text-align: left;">Write your Journal/Diary below:</th>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="8">
+                                                        <div class="journal-text">${journal.text.replace(/\n/g, '<br>')}</div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <table style="width: 100%; border-collapse: collapse; margin-top: 0;">
+                                                <tr>
+                                                    <td width="33.33%" style="text-align: center;">Student-Trainee's Signature</td>
+                                                    <td width="33.33%" style="text-align: center;">HTE Trainer's Signature</td>
+                                                    <td width="33.33%" style="text-align: center;">FPC's Signature</td>
+                                                </tr>
+                                                <tr>
+                                                    <td height="50px" style="border: 1px solid black;"></td>
+                                                    <td height="50px" style="border: 1px solid black;"></td>
+                                                    <td height="50px" style="border: 1px solid black;"></td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `).join('')}
+                        </body>
+                    </html>
+                `);
+
+                        printWindow.document.close();
+                        setTimeout(() => {
+                            printWindow.print();
+                            printWindow.close();
+                        }, 1000);
+                    } else {
+                        alert('Error loading journal entries');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading journal entries');
+                });
+        }
     </script>
 </body>
 
