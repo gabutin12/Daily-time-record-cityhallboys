@@ -475,6 +475,39 @@ function calculateTotalHoursMinusLunch($user_id)
             margin-bottom: 10px;
             padding-right: 25px;
         }
+
+        .modal {
+            display: none;
+        }
+
+        .modal.show {
+            display: block;
+        }
+
+        .modal-dialog {
+            position: fixed;
+            margin: 0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) !important;
+            width: 95%;
+            max-width: 500px;
+        }
+
+        .modal-content {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: #f8f9fa;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .modal-footer {
+            background: #f8f9fa;
+            border-radius: 0 0 10px 10px;
+        }
     </style>
 </head>
 
@@ -908,6 +941,44 @@ function calculateTotalHoursMinusLunch($user_id)
         // Add this to your <script> section
         function exportToExcel() {
             window.location.href = 'export_excel.php';
+        }
+
+        // Update your modal initialization code
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Bootstrap modals with custom options
+            addTimeModal = new bootstrap.Modal(document.getElementById('addTimeModal'), {
+                backdrop: 'static',
+                keyboard: false,
+                focus: true
+            });
+
+            editTimeModal = new bootstrap.Modal(document.getElementById('editTimeModal'), {
+                backdrop: 'static',
+                keyboard: false,
+                focus: true
+            });
+        });
+
+        // Update showAddModal function
+        function showAddModal(date) {
+            currentEditDate = date;
+            document.querySelectorAll('#addTimeModal [name="date"]').forEach(input => {
+                input.value = date;
+            });
+            document.getElementById('addTimeModal').classList.add('show');
+            document.body.classList.add('modal-open');
+            addTimeModal.show();
+        }
+
+        // Update showEditModal function
+        function showEditModal(date) {
+            currentEditDate = date;
+            document.querySelectorAll('#editTimeModal [name="date"]').forEach(input => {
+                input.value = date;
+            });
+            document.getElementById('editTimeModal').classList.add('show');
+            document.body.classList.add('modal-open');
+            editTimeModal.show();
         }
     </script>
 </body>

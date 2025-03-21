@@ -531,6 +531,12 @@ function calculateTotalHoursMinusLunch($user_id)
                     <button onclick="exportToExcel()" class="btn btn-success">
                         <i class="fas fa-file-excel"></i> Export to Excel
                     </button>
+                    <button onclick="printCurrentMonth()" class="btn btn-info">
+                        <i class="fas fa-print"></i> Print Month
+                    </button>
+                    <button onclick="printAllMonths()" class="btn btn-primary">
+                        <i class="fas fa-print"></i> Print All Months
+                    </button>
                     <a href="logout.php" class="btn btn-danger">Logout</a>
                 </div>
             </div>
@@ -618,6 +624,29 @@ function calculateTotalHoursMinusLunch($user_id)
                 </div>
             </div>
 
+            <!-- Add this card to the sidebar -->
+            <div class="card mt-3">
+                <div class="card-header text-center bg-primary text-white">
+                    <i class="fas fa-chart-bar"></i> Monthly Statistics
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Days Worked
+                            <span class="badge bg-primary rounded-pill" id="daysWorked">0</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Average Hours/Day
+                            <span class="badge bg-info rounded-pill" id="avgHours">0</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Saturdays Worked
+                            <span class="badge bg-warning rounded-pill" id="saturdaysWorked">0</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
         </div>
 
         <div class="main-content">
@@ -685,6 +714,147 @@ function calculateTotalHoursMinusLunch($user_id)
                 .catch(error => {
                     console.error('Error:', error);
                     alert('Error saving times');
+                });
+        }
+
+        // Add this function to calculate monthly statistics
+        function updateMonthlyStatistics() {
+            const year = new URLSearchParams(window.location.search).get('year') || new Date().getFullYear();
+            const month = new URLSearchParams(window.location.search).get('month') || (new Date().getMonth() + 1);
+
+            fetch(`get_monthly_stats.php?year=${year}&month=${month}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('daysWorked').textContent = data.daysWorked;
+                    document.getElementById('avgHours').textContent = formatHoursToTime(data.averageHours);
+                    document.getElementById('saturdaysWorked').textContent = data.saturdaysWorked;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Call this when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateMonthlyStatistics();
+        });
+
+        // Add this function to your JavaScript section
+        function printAllMonths() {
+            const currentYear = new Date().getFullYear();
+            const printWindow = window.open('', '', 'height=600,width=800');
+
+            fetch(`get_all_months.php?year=${currentYear}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        printWindow.document.write(`
+                            <html>
+                                <head>
+                                    <title>DTR - Annual Report ${currentYear}</title>
+                                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                                    <style>
+                                        @page { size: landscape; margin: 15mm; }
+                                        body {
+                                            padding: 20px;
+                                            font-family: Arial, sans-serif;
+                                            background: white;
+                                        }
+                                        .month-section {
+                                            page-break-after: always;
+                                            margin-bottom: 30px;
+                                            border: 1px solid black;
+                                            padding: 15px;
+                                        }
+                                        .calendar {
+                                            width: 100%;
+                                            border-collapse: collapse;
+                                            margin-bottom: 20px;
+                                            border: 2px solid black;
+                                        }
+                                        .calendar th, .calendar td {
+                                            border: 1px solid black;
+                                            padding: 8px;
+                                            font-size: 12px;
+                                        }
+                                        .calendar th {
+                                            background-color: #E8F4F8;
+                                            font-weight: bold;
+                                            border: 1px solid black;
+                                        }
+                                        .calendar-entry {
+                                            text-align: center;
+                                            padding: 3px;
+                                            margin: 2px 0;
+                                            border: 1px solid black;
+                                            border-radius: 3px;
+                                            font-size: 11px;
+                                            color: black;
+                                            font-weight: bold;
+                                        }
+                                        .month-header {
+                                            text-align: center;
+                                            margin: 20px 0;
+                                            padding: 10px;
+                                            color: black !important;
+                                            border-radius: 5px;
+                                            border: 2px solid black;
+                                            -webkit-print-color-adjust: exact;
+                                            print-color-adjust: exact;
+                                        }
+                                        .annual-summary {
+                                            margin-top: 30px;
+                                            padding: 20px;
+                                            border: 2px solid black;
+                                            border-radius: 5px;
+                                        }
+                                        @media print {
+                                            .no-print { display: none; }
+                                            .month-section { page-break-after: always; }
+                                            .month-header {
+                                                color: black !important;
+                                                border: 2px solid black !important;
+                                                -webkit-print-color-adjust: exact;
+                                                print-color-adjust: exact;
+                                            }
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <div class="report-header">
+                                        <h2 class="text-center mb-4">Annual Daily Time Record - ${currentYear}</h2>
+                                        <p class="text-center">Employee: ${document.querySelector('.card-header').textContent.split(',')[1]}</p>
+                                        <p class="text-center">Generated on: ${new Date().toLocaleDateString()}</p>
+                                    </div>
+                                    ${data.months.join('')}
+                                    <div class="annual-summary">
+                                        <h2 class="text-center">Annual Summary</h2>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>Total Days Worked:</strong> ${data.annual_totals.total_days}</p>
+                                                <p><strong>Total Saturdays:</strong> ${data.annual_totals.total_saturdays}</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>Total Regular Hours:</strong> ${data.annual_totals.total_hours}</p>
+                                                <p><strong>Total Hours with Saturday x2:</strong> ${data.annual_totals.total_with_saturday}</p>
+                                                <p><strong>Total Hours Minus Lunch:</strong> ${data.annual_totals.total_minus_lunch}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </body>
+                            </html>
+                        `);
+
+                        printWindow.document.close();
+                        setTimeout(() => {
+                            printWindow.print();
+                            printWindow.close();
+                        }, 1000);
+                    } else {
+                        alert('Error generating print view');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error generating print view');
                 });
         }
     </script>
@@ -1247,6 +1417,126 @@ function calculateTotalHoursMinusLunch($user_id)
                     alert('Error saving times');
                 });
         }
+
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const dateString = now.toLocaleDateString();
+            document.getElementById('realTimeClock').innerHTML = `${dateString} ${timeString}`;
+        }
+
+        // Update clock every second
+        setInterval(updateClock, 1000);
+        updateClock(); // Initial call
+
+        function printCurrentMonth() {
+            const year = new URLSearchParams(window.location.search).get('year') || new Date().getFullYear();
+            const month = new URLSearchParams(window.location.search).get('month') || (new Date().getMonth() + 1);
+
+            const content = document.querySelector('.main-content').innerHTML;
+            const printWindow = window.open('', '', 'height=600,width=800');
+
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>DTR - ${document.querySelector('#monthDropdown').textContent}</title>
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <style>
+                            @page { size: landscape; }
+                            body {
+                                padding: 20px;
+                                font-family: Arial, sans-serif;
+                            }
+                            .calendar {
+                                width: 100%;
+                                border-collapse: collapse;
+                            }
+                            .calendar th, .calendar td {
+                                border: 1px solid #dee2e6;
+                                padding: 8px;
+                            }
+                            .calendar th {
+                                background-color: #f8f9fa;
+                                font-weight: bold;
+                            }
+                            .calendar-entry {
+                                background: #198754;
+                                color: white;
+                                padding: 4px;
+                                margin: 2px 0;
+                                border-radius: 4px;
+                                font-size: 12px;
+                            }
+                            .summary-section {
+                                margin-top: 20px;
+                                padding: 15px;
+                                border: 1px solid #dee2e6;
+                                border-radius: 5px;
+                            }
+                            .header-section {
+                                text-align: center;
+                                margin-bottom: 20px;
+                            }
+                            .header-section h2 {
+                                color: #333;
+                                margin-bottom: 5px;
+                            }
+                            .header-section p {
+                                color: #666;
+                                margin: 0;
+                            }
+                            @media print {
+                                .no-print { display: none; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header-section">
+                            <h2>Daily Time Record</h2>
+                            <p>${document.querySelector('#monthDropdown').textContent}</p>
+                            <p>Employee: ${document.querySelector('.card-header').textContent.split(',')[1]}</p>
+                        </div>
+                        ${content}
+                        <div class="summary-section">
+                            <h4>Monthly Summary</h4>
+                            <p>Days Worked: ${document.getElementById('daysWorked').textContent}</p>
+                            <p>Average Hours/Day: ${document.getElementById('avgHours').textContent}</p>
+                            <p>Saturdays Worked: ${document.getElementById('saturdaysWorked').textContent}</p>
+                            <p>Total Hours: ${document.getElementById('totalHours').textContent}</p>
+                            <p>Total Hours with Saturday x2: ${document.getElementById('totalHoursWithSaturday').textContent}</p>
+                            <p>Total Hours Minus Lunch: ${document.getElementById('totalHoursMinusLunch').textContent}</p>
+                        </div>
+                    </body>
+                </html>
+            `);
+
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 1000);
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey) {
+                switch (e.key) {
+                    case 's':
+                        e.preventDefault();
+                        saveAllTimes();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        printCurrentMonth();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportToExcel();
+                        break;
+                }
+            }
+        });
     </script>
 </body>
 
