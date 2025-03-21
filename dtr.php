@@ -2351,140 +2351,110 @@ function calculateTotalHoursMinusLunch($user_id)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Group journals by date month
-                        const journalsByMonth = {};
-                        data.journals.forEach(journal => {
-                            const monthYear = new Date(journal.date).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long'
-                            });
-                            if (!journalsByMonth[monthYear]) {
-                                journalsByMonth[monthYear] = [];
-                            }
-                            journalsByMonth[monthYear].push(journal);
-                        });
-
-                        // Generate HTML with entries grouped by month
-                        const monthSections = Object.entries(journalsByMonth).map(([monthYear, journals]) => `
-                            <div class="page">                                
-                                ${journals.map(journal => `
-                                    <div class="journal-entry">
-                                        <table>
-                                            <tr>
-                                                <th width="15%">Date:</th>
-                                                <td width="20%">${new Date(journal.date).toLocaleDateString()}</td>
-                                                <th width="10%">Department:</th>
-                                                <td width="55%" colspan="5">${journal.department}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Time in (start):</th>
-                                                <td>${journal.time_in_am || ''}</td>
-                                                <th>Time out:</th>
-                                                <td>${journal.time_out_am || ''}</td>
-                                                <th>Time in:</th>
-                                                <td>${journal.time_in_pm || ''}</td>
-                                                <th>Time out (end):</th>
-                                                <td>${journal.time_out_pm || ''}</td>
-                                            </tr>
-                                            <tr>
-                                                <th colspan="8" style="text-align: left;">Write your Journal/Diary below:</th>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="8">
-                                                    <div class="journal-text">${journal.text.replace(/\n/g, '<br>')}</div>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                        <table style="width: 100%; border-collapse: collapse; margin-top: 0;">
-                                            <tr>
-                                                <td width="33.33%" style="text-align: center;">Student-Trainee's Signature</td>
-                                                <td width="33.33%" style="text-align: center;">HTE Trainer's Signature</td>
-                                                <td width="33.33%" style="text-align: center;">FPC's Signature</td>
-                                            </tr>
-                                            <tr>
-                                                <td height="50px" style="border: 1px solid black;"></td>
-                                                <td height="50px" style="border: 1px solid black;"></td>
-                                                <td height="50px" style="border: 1px solid black;"></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `).join('');
+                        // Group journals into sets of 3
+                        const journalGroups = [];
+                        for (let i = 0; i < data.journals.length; i += 3) {
+                            journalGroups.push(data.journals.slice(i, i + 3));
+                        }
 
                         printWindow.document.write(`
                             <html>
                                 <head>
                                     <title>Practicum Journal/Diary</title>
                                     <style>
+                                        @page {
+                                            size: 8.5in 11in;  /* Letter size / Short bondpaper */
+                                            margin: 0.5in;     /* 0.5 inch margins on all sides */
+                                        }
                                         body {
                                             font-family: Arial, sans-serif;
-                                            padding: 20px;
-                                            max-width: 1000px;
+                                            padding: 0;
+                                            margin: 0;
+                                            width: 7.5in;      /* 8.5in - (2 * 0.5in margin) */
                                             margin: 0 auto;
                                         }
                                         .page {
                                             page-break-after: always;
-                                        }
-                                        .main-header {
-                                            text-align: center;
-                                            margin-bottom: 50px;
-                                            padding: 20px;
-                                        }
-                                        .main-header h1 {
-                                            font-size: 24px;
-                                            margin: 0;
+                                            padding: 0;
                                         }
                                         .journal-entry {
-                                            margin-bottom: 0px;
+                                            margin-bottom: 20px;
+                                        }
+                                        .journal-text {
+                                            min-height: 100px;
+                                            white-space: pre-wrap;
+                                            line-height: 1.4;
+                                            padding: 10px;
+                                            font-size: 11px;
                                         }
                                         table {
                                             width: 100%;
                                             border-collapse: collapse;
-                                            margin-bottom: 5px;
-                                            font-size: 12px;
+                                            margin: 0;
+                                            font-size: 11px;
                                         }
                                         th, td {
                                             border: 1px solid black;
                                             padding: 8px;
-                                        }
-                                        .signature-row {
-                                            display: grid;
-                                            grid-template-columns: repeat(3, 1fr);
-                                            gap: 10px;
-                                            margin-top: 20px;
-                                            text-align: center;
-                                            font-size: 12px;
-                                        }
-                                        .signature-line {
-                                            border-top: 1px solid black;
-                                            margin-top: 20px;
-                                            padding-top: 5px;
-                                        }
-                                        .journal-text {
-                                            min-height: 90px;
-                                            white-space: pre-wrap;
-                                            line-height: 1.4;
-                                            padding: 10px;
-                                            font-size: 12px;
-                                        }
-                                        @media print {
-                                            .page {
-                                                page-break-after: always;
-                                            }
+                                            text-align: left;
                                         }
                                     </style>
                                 </head>
                                 <body>
                                     <!-- First page with main header -->
                                     <div class="page">
-                                        <div class="main-header">
+                                        <div style="text-align: center; margin-bottom: 30px;">
                                             <h1>Practicum Journal/Diary</h1>
                                         </div>
                                     </div>
 
                                     <!-- Journal entries pages -->
-                                    ${monthSections}
+                                    ${journalGroups.map(group => `
+                                        <div class="page">
+                                            ${group.map(journal => `
+                                                <div class="journal-entry">
+                                                    <table>
+                                                        <tr>
+                                                            <th width="15%">Date:</th>
+                                                            <td width="20%">${new Date(journal.date).toLocaleDateString()}</td>
+                                                            <th width="10%">Department:</th>
+                                                            <td width="55%" colspan="5">${journal.department}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Time in (start):</th>
+                                                            <td>${journal.time_in_am || ''}</th>
+                                                            <th>Time out:</th>
+                                                            <td>${journal.time_out_am || ''}</th>
+                                                            <th>Time in:</th>
+                                                            <td>${journal.time_in_pm || ''}</th>
+                                                            <th>Time out (end):</th>
+                                                            <td>${journal.time_out_pm || ''}</th>
+                                                        </tr>
+                                                        <tr>
+                                                            <th colspan="8" style="text-align: left;">Write your Journal/Diary below:</th>
+                                                        </tr>
+                                                        <tr>
+                                                            <td colspan="8">
+                                                                <div class="journal-text">${journal.text.replace(/\n/g, '<br>')}</div>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <table style="width: 100%; border-collapse: collapse;">
+                                                        <tr>
+                                                            <td width="33.33%" style="text-align: center;">Student-Trainee's Signature</td>
+                                                            <td width="33.33%" style="text-align: center;">HTE Trainer's Signature</td>
+                                                            <td width="33.33%" style="text-align: center;">FPC's Signature</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td height="50px" style="border: 1px solid black;"></td>
+                                                            <td height="50px" style="border: 1px solid black;"></td>
+                                                            <td height="50px" style="border: 1px solid black;"></td>
+                                                        </tr>
+                                                    </table>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `).join('')}
                                 </body>
                             </html>
                         `);
