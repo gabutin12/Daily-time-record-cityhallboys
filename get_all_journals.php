@@ -11,7 +11,7 @@ $sql = "SELECT j.*, d.time_in_am, d.time_out_am, d.time_in_pm, d.time_out_pm
         FROM journals j 
         LEFT JOIN dtr_records d ON j.user_id = d.user_id AND j.date = d.date 
         WHERE j.user_id = ? 
-        ORDER BY j.date DESC";
+        ORDER BY j.date ASC";  // Changed from DESC to ASC
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $_SESSION['id']);
