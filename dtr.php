@@ -100,7 +100,7 @@ function generateCalendarPHP($year, $month)
                         </button>";
             $calendar .= "</div>";
         } else {
-            $calendar .= "<button class='add-day btn btn-outline-primary btn-sm' type='button' data-bs-toggle='modal' data-bs-target='#addTimeModal' onclick='initAddModal(\"$date\"); playQuackSound();'>
+            $calendar .= "<button class='add-day btn btn-outline-primary btn-sm' type='button' data-bs-toggle='modal' data-bs-target='#addTimeModal' onclick='initAddModal(\"$date\")'>
                             <i class='fas fa-plus'></i>
                         </button>";
         }
@@ -240,6 +240,9 @@ function calculateTotalHoursMinusLunch($user_id)
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <audio id="quackSound" preload="auto" style="display: none;">
+        <source src="quack.mp3" type="audio/mpeg">
+    </audio>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -772,7 +775,6 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function saveAddTimes() {
-            playQuackSound();
             const forms = document.querySelectorAll('#addTimeModal form');
             const times = {};
 
@@ -952,25 +954,6 @@ function calculateTotalHoursMinusLunch($user_id)
                 });
         }
 
-<<<<<<< HEAD
-        // Sound effects for buttons
-
-        // Create audio element
-        const quackSound = new Audio('assets/audio/quack.mp3');
-
-        // Function to play sound
-        function playQuackSound() {
-            quackSound.currentTime = 0; // Reset sound to start
-            quackSound.play();
-        }
-
-        // Add click sound to all buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add sound to all buttons
-            document.querySelectorAll('button, .btn').forEach(button => {
-                button.addEventListener('click', playQuackSound);
-            });
-=======
         // Add these functions to your existing JavaScript
         let journalModal;
 
@@ -984,6 +967,7 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function submitJournal() {
+            playquacksound();
             const date = document.getElementById('journalDate').value;
             const text = document.getElementById('journalText').value;
 
@@ -1027,6 +1011,7 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function in your <script> section
         function saveAllTimes() {
+            playQuackSound();
             const date = document.getElementById('datePicker').value;
             const timeInAM = document.querySelector('input[name="time_value"][value="08:00"]').value;
             const timeOutAM = document.querySelector('input[name="time_value"][value="12:00"]').value;
@@ -1080,6 +1065,7 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function in your <script> section
         function resetAllTimes() {
+            playQuackSound();
             if (confirm('Are you sure you want to reset all time entries? This action cannot be undone.')) {
                 const selectedDate = document.getElementById('datePicker').value;
 
@@ -1254,6 +1240,7 @@ function calculateTotalHoursMinusLunch($user_id)
         const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
 
         function showEditModal(date) {
+            playQuackSound();
             currentEditDate = date;
 
             // Fetch existing records
@@ -1504,7 +1491,6 @@ function calculateTotalHoursMinusLunch($user_id)
                         break;
                 }
             }
->>>>>>> cac628e0d9f02842b122a5e258956f961a0fbf56
         });
     </script>
 
@@ -1783,7 +1769,6 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function in your <script> section
         function saveAllTimes() {
-            playQuackSound();
             const date = document.getElementById('datePicker').value;
             const timeInAM = document.querySelector('input[name="time_value"][value="08:00"]').value;
             const timeOutAM = document.querySelector('input[name="time_value"][value="12:00"]').value;
@@ -1838,7 +1823,6 @@ function calculateTotalHoursMinusLunch($user_id)
         // Add this function in your <script> section
         function resetAllTimes() {
             if (confirm('Are you sure you want to reset all time entries? This action cannot be undone.')) {
-                playQuackSound();
                 const selectedDate = document.getElementById('datePicker').value;
 
                 fetch('reset_times.php', {
@@ -1960,8 +1944,8 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function to your <script> section
         function deleteDay(date) {
+            playQuackSound();
             if (confirm('Are you sure you want to delete all entries for this day?')) {
-                playQuackSound();
                 fetch('delete_day.php', {
                         method: 'POST',
                         headers: {
@@ -2005,14 +1989,12 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this to your <script> section
         function exportToExcel() {
-            playQuackSound();
             window.location.href = 'export_excel.php';
         }
 
 
 
         function showEditModal(date) {
-            playQuackSound();
             currentEditDate = date;
 
             // Fetch existing records
@@ -2157,7 +2139,6 @@ function calculateTotalHoursMinusLunch($user_id)
         updateClock(); // Initial call
 
         function printCurrentMonth() {
-            playQuackSound();
             const year = new URLSearchParams(window.location.search).get('year') || new Date().getFullYear();
             const month = new URLSearchParams(window.location.search).get('month') || (new Date().getMonth() + 1);
 
@@ -2279,6 +2260,7 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function showJournalModal(date) {
+            playquacksound();
             document.getElementById('journalDate').value = date;
 
             // Check if there's an existing journal entry
@@ -2304,6 +2286,7 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function submitJournal() {
+            playquacksound();
             const date = document.getElementById('journalDate').value;
             const department = document.getElementById('department').value;
             const text = document.getElementById('journalText').value;
@@ -2339,9 +2322,11 @@ function calculateTotalHoursMinusLunch($user_id)
             document.getElementById('department').value = '';
             document.getElementById('journalText').value = '';
             updatePreview();
+            playquacksound();
         }
 
         function deleteJournal() {
+            playquacksound();
             if (confirm('Are you sure you want to delete this journal entry? This cannot be undone.')) {
                 const date = document.getElementById('journalDate').value;
 
@@ -2372,6 +2357,7 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function printAllJournals() {
+            playquacksound();
             const printWindow = window.open('', '', 'height=600,width=800');
 
             fetch('get_all_journals.php')
@@ -2500,7 +2486,37 @@ function calculateTotalHoursMinusLunch($user_id)
                     alert('Error loading journal entries');
                 });
         }
+
+        function playQuackSound() {
+            const quack = new Audio('quack.mp3');
+            quack.volume = 0.5; // Set volume to 50%
+            quack.play().catch(error => console.log('Error playing sound:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click sound to all buttons
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('click', playQuackSound);
+            });
+        });
     </script>
 </body>
 
 </html>
+<!-- 
+-- Insert test record
+INSERT INTO dtr_records (user_id, date, time_in_am, time_out_am, time_in_pm, time_out_pm)
+VALUES (1, CURDATE(), '08:00:00', '12:00:00', '13:00:00', '17:00:00');
+
+-- Query to check total hours
+SELECT
+u.username,
+d.date,
+TIME_FORMAT(d.time_in_am, '%h:%i %p') as morning_in,
+TIME_FORMAT(d.time_out_am, '%h:%i %p') as morning_out,
+TIME_FORMAT(d.time_in_pm, '%h:%i %p') as afternoon_in,
+TIME_FORMAT(d.time_out_pm, '%h:%i %p') as afternoon_out,
+d.total_hours
+FROM dtr_records d
+JOIN users u ON d.user_id = u.id
+ORDER BY d.date DESC; -->
