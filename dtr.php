@@ -97,7 +97,7 @@ function generateCalendarPHP($year, $month)
                         </button>";
             $calendar .= "</div>";
         } else {
-            $calendar .= "<button class='add-day btn btn-outline-primary btn-sm' type='button' data-bs-toggle='modal' data-bs-target='#addTimeModal' onclick='initAddModal(\"$date\")'>
+            $calendar .= "<button class='add-day btn btn-outline-primary btn-sm' type='button' data-bs-toggle='modal' data-bs-target='#addTimeModal' onclick='initAddModal(\"$date\"); playQuackSound();'>
                             <i class='fas fa-plus'></i>
                         </button>";
         }
@@ -679,6 +679,7 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function saveAddTimes() {
+            playQuackSound();
             const forms = document.querySelectorAll('#addTimeModal form');
             const times = {};
 
@@ -857,6 +858,25 @@ function calculateTotalHoursMinusLunch($user_id)
                     alert('Error generating print view');
                 });
         }
+
+        // Sound effects for buttons
+
+        // Create audio element
+        const quackSound = new Audio('assets/audio/quack.mp3');
+
+        // Function to play sound
+        function playQuackSound() {
+            quackSound.currentTime = 0; // Reset sound to start
+            quackSound.play();
+        }
+
+        // Add click sound to all buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add sound to all buttons
+            document.querySelectorAll('button, .btn').forEach(button => {
+                button.addEventListener('click', playQuackSound);
+            });
+        });
     </script>
 
     <!-- Add this before </body> -->
@@ -1059,6 +1079,7 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function in your <script> section
         function saveAllTimes() {
+            playQuackSound();
             const date = document.getElementById('datePicker').value;
             const timeInAM = document.querySelector('input[name="time_value"][value="08:00"]').value;
             const timeOutAM = document.querySelector('input[name="time_value"][value="12:00"]').value;
@@ -1113,6 +1134,7 @@ function calculateTotalHoursMinusLunch($user_id)
         // Add this function in your <script> section
         function resetAllTimes() {
             if (confirm('Are you sure you want to reset all time entries? This action cannot be undone.')) {
+                playQuackSound();
                 const selectedDate = document.getElementById('datePicker').value;
 
                 fetch('reset_times.php', {
@@ -1235,6 +1257,7 @@ function calculateTotalHoursMinusLunch($user_id)
         // Add this function to your <script> section
         function deleteDay(date) {
             if (confirm('Are you sure you want to delete all entries for this day?')) {
+                playQuackSound();
                 fetch('delete_day.php', {
                         method: 'POST',
                         headers: {
@@ -1278,6 +1301,7 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this to your <script> section
         function exportToExcel() {
+            playQuackSound();
             window.location.href = 'export_excel.php';
         }
 
@@ -1286,6 +1310,7 @@ function calculateTotalHoursMinusLunch($user_id)
         const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
 
         function showEditModal(date) {
+            playQuackSound();
             currentEditDate = date;
 
             // Fetch existing records
@@ -1430,6 +1455,7 @@ function calculateTotalHoursMinusLunch($user_id)
         updateClock(); // Initial call
 
         function printCurrentMonth() {
+            playQuackSound();
             const year = new URLSearchParams(window.location.search).get('year') || new Date().getFullYear();
             const month = new URLSearchParams(window.location.search).get('month') || (new Date().getMonth() + 1);
 
@@ -1541,20 +1567,3 @@ function calculateTotalHoursMinusLunch($user_id)
 </body>
 
 </html>
-<!-- 
--- Insert test record
-INSERT INTO dtr_records (user_id, date, time_in_am, time_out_am, time_in_pm, time_out_pm)
-VALUES (1, CURDATE(), '08:00:00', '12:00:00', '13:00:00', '17:00:00');
-
--- Query to check total hours
-SELECT
-u.username,
-d.date,
-TIME_FORMAT(d.time_in_am, '%h:%i %p') as morning_in,
-TIME_FORMAT(d.time_out_am, '%h:%i %p') as morning_out,
-TIME_FORMAT(d.time_in_pm, '%h:%i %p') as afternoon_in,
-TIME_FORMAT(d.time_out_pm, '%h:%i %p') as afternoon_out,
-d.total_hours
-FROM dtr_records d
-JOIN users u ON d.user_id = u.id
-ORDER BY d.date DESC; -->
