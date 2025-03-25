@@ -952,7 +952,6 @@ function calculateTotalHoursMinusLunch($user_id)
                 });
         }
 
-<<<<<<< HEAD
         // Sound effects for buttons
 
         // Create audio element
@@ -970,541 +969,6 @@ function calculateTotalHoursMinusLunch($user_id)
             document.querySelectorAll('button, .btn').forEach(button => {
                 button.addEventListener('click', playQuackSound);
             });
-=======
-        // Add these functions to your existing JavaScript
-        let journalModal;
-
-        document.addEventListener('DOMContentLoaded', function() {
-            journalModal = new bootstrap.Modal(document.getElementById('journalModal'));
-        });
-
-        function showJournalModal(date) {
-            document.getElementById('journalDate').value = date;
-            journalModal.show();
-        }
-
-        function submitJournal() {
-            const date = document.getElementById('journalDate').value;
-            const text = document.getElementById('journalText').value;
-
-            fetch('save_journal.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        date: date,
-                        text: text
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Journal entry saved successfully');
-                        journalModal.hide();
-                    } else {
-                        alert('Error saving journal entry: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error saving journal entry');
-                });
-        }
-
-        // Add this function in your <script> section
-        function refreshCalendar() {
-            // Get current date from datepicker
-            const currentDate = document.getElementById('datePicker').value;
-
-            // Reload the page with current year and month
-            const date = new Date(currentDate);
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-
-            window.location.href = `dtr.php?year=${year}&month=${month}`;
-        }
-
-        // Add this function in your <script> section
-        function saveAllTimes() {
-            const date = document.getElementById('datePicker').value;
-            const timeInAM = document.querySelector('input[name="time_value"][value="08:00"]').value;
-            const timeOutAM = document.querySelector('input[name="time_value"][value="12:00"]').value;
-            const timeInPM = document.querySelector('input[name="time_value"][value="12:00"]').value;
-            const timeOutPM = document.querySelector('input[name="time_value"][value="17:30"]').value;
-
-            const data = {
-                date: date,
-                times: {
-                    time_in_am: timeInAM,
-                    time_out_am: timeOutAM,
-                    time_in_pm: timeInPM,
-                    time_out_pm: timeOutPM
-                }
-            };
-
-            fetch('save_all_times.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('All times saved successfully');
-
-                        // Update all total hours displays
-                        document.getElementById('totalHours').textContent =
-                            `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
-                        document.getElementById('totalHoursWithSaturday').textContent =
-                            `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
-                        document.getElementById('totalHoursMinusLunch').textContent =
-                            `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
-
-                        // Add this line to refresh the page after saving
-                        window.location.reload();
-
-                        // Alternatively, you could use your existing refreshCalendar function:
-                        // refreshCalendar();
-                    } else {
-                        alert('Error saving times: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error saving times');
-                });
-        }
-
-        // Add this function in your <script> section
-        function resetAllTimes() {
-            if (confirm('Are you sure you want to reset all time entries? This action cannot be undone.')) {
-                const selectedDate = document.getElementById('datePicker').value;
-
-                fetch('reset_times.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            date: selectedDate
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Clear calendar entry for the selected date
-                            const dateParts = selectedDate.split('-');
-                            const year = dateParts[0];
-                            const month = dateParts[1];
-                            const day = dateParts[2];
-
-                            const entryContainer = document.querySelector(`#entry-${year}-${month}-${day}`);
-                            if (entryContainer) {
-                                entryContainer.innerHTML = '';
-                            }
-
-                            // Reset all time inputs to default values
-                            document.querySelector('input[name="time_value"][value="08:00"]').value = "08:00";
-                            document.querySelector('input[name="time_value"][value="12:00"]').value = "12:00";
-                            document.querySelector('input[name="time_value"][value="12:00"]').value = "12:00";
-                            document.querySelector('input[name="time_value"][value="17:30"]').value = "17:30";
-
-                            // Update total hours
-                            document.getElementById('totalHours').textContent =
-                                `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
-
-                            alert('Time entries have been reset successfully');
-                        } else {
-                            alert('Error resetting times: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error resetting times');
-                    });
-            }
-        }
-
-        // Add this function in your <script> section
-        function resetAllTimes() {
-            if (confirm('Are you sure you want to reset all time records? This cannot be undone.')) {
-                fetch('reset_entries.php', {
-                        method: 'POST'
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Clear all calendar entries
-                            document.querySelectorAll('.entry-container').forEach(container => {
-                                container.innerHTML = '';
-                            });
-
-                            // Reset total hours
-                            document.getElementById('totalHours').textContent = '0.00 Hours';
-
-                            // Refresh the calendar
-                            refreshCalendar();
-
-                            alert('All time records have been reset');
-                        } else {
-                            alert('Error resetting records: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error resetting records');
-                    });
-            }
-        }
-
-        // Add this to your <script> section
-        function editDay(date) {
-            // Set the date picker to the selected date
-            document.getElementById('datePicker').value = date;
-
-            // Fetch existing records for this date
-            fetch(`get_time_records.php?date=${date}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.records) {
-                        // Update time inputs with existing values
-                        if (data.records.time_in_am) {
-                            document.querySelector('input[name="time_value"][value="08:00"]').value =
-                                data.records.time_in_am.substring(0, 5);
-                        }
-                        if (data.records.time_out_am) {
-                            document.querySelector('input[name="time_value"][value="12:00"]').value =
-                                data.records.time_out_am.substring(0, 5);
-                        }
-                        if (data.records.time_in_pm) {
-                            document.querySelector('input[name="time_value"][value="12:00"]').value =
-                                data.records.time_in_pm.substring(0, 5);
-                        }
-                        if (data.records.time_out_pm) {
-                            document.querySelector('input[name="time_value"][value="17:30"]').value =
-                                data.records.time_out_pm.substring(0, 5);
-                        }
-                    }
-
-                    // Scroll to the time entry form
-                    document.querySelector('.sidebar').scrollIntoView({
-                        behavior: 'smooth'
-                    });
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error fetching time records');
-                });
-        }
-
-        // Add this function to your <script> section
-        function deleteDay(date) {
-            if (confirm('Are you sure you want to delete all entries for this day?')) {
-                fetch('delete_day.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            date: date
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Show success message
-                            alert('Entries deleted successfully');
-
-                            // Update all total hours displays
-                            document.getElementById('totalHours').textContent =
-                                `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
-                            document.getElementById('totalHoursWithSaturday').textContent =
-                                `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
-                            document.getElementById('totalHoursMinusLunch').textContent =
-                                `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
-
-                            // Get the date parts for the URL
-                            const dateParts = date.split('-');
-                            const year = dateParts[0];
-                            const month = dateParts[1];
-
-                            // Refresh the page with the current year and month
-                            window.location.href = `dtr.php?year=${year}&month=${month}`;
-                        } else {
-                            alert('Error deleting entries: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error deleting entries');
-                    });
-            }
-        }
-
-        // Add this to your <script> section
-        function exportToExcel() {
-            window.location.href = 'export_excel.php';
-        }
-
-        // Add to your <script> section
-        let currentEditDate = '';
-        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
-
-        function showEditModal(date) {
-            currentEditDate = date;
-
-            // Fetch existing records
-            fetch(`get_time_records.php?date=${date}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.records) {
-                        // Update modal inputs with existing values
-                        document.querySelectorAll('#editTimeModal form').forEach(form => {
-                            const timeType = form.querySelector('[name="time_type"]').value;
-                            const timeInput = form.querySelector('[name="time_value"]');
-                            if (data.records[timeType]) {
-                                timeInput.value = data.records[timeType].substring(0, 5);
-                            }
-                        });
-
-                        // Show the modal
-                        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
-                        editModal.show();
-                    } else {
-                        throw new Error('No records found');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error fetching time records');
-                });
-        }
-
-        function saveModalTimes() {
-            const forms = document.querySelectorAll('#editTimeModal form');
-            const times = {};
-
-            forms.forEach(form => {
-                const timeType = form.querySelector('[name="time_type"]').value;
-                times[timeType] = form.querySelector('[name="time_value"]').value;
-            });
-
-            const data = {
-                date: currentEditDate,
-                times: times
-            };
-
-            fetch('save_all_times.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        editModal.hide();
-                        // Get the date parts for the URL
-                        const dateParts = currentEditDate.split('-');
-                        const year = dateParts[0];
-                        const month = dateParts[1];
-
-                        // Refresh the page with the current year and month
-                        window.location.href = `dtr.php?year=${year}&month=${month}`;
-                    } else {
-                        alert('Error saving times: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error saving times');
-                });
-        }
-
-        // Add this function to your JavaScript
-        function formatHoursToTime(decimal_hours) {
-            const hours = Math.floor(decimal_hours);
-            const minutes = Math.round((decimal_hours - hours) * 60);
-            return `${hours}:${minutes.toString().padStart(2, '0')}`;
-        }
-
-
-
-
-        document.addEventListener('DOMContentLoaded', function() {
-            addTimeModal = new bootstrap.Modal(document.getElementById('addTimeModal'));
-        });
-
-        function showAddModal(date) {
-            currentEditDate = date; // Reuse the existing variable
-            document.querySelectorAll('#addTimeModal [name="date"]').forEach(input => {
-                input.value = date;
-            });
-            addTimeModal.show();
-        }
-
-        function saveAddTimes() {
-            const forms = document.querySelectorAll('#addTimeModal form');
-            const times = {};
-
-            forms.forEach(form => {
-                const timeType = form.querySelector('[name="time_type"]').value;
-                times[timeType] = form.querySelector('[name="time_value"]').value;
-            });
-
-            const data = {
-                date: currentEditDate,
-                times: times
-            };
-
-            fetch('save_all_times.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        addTimeModal.hide();
-                        const dateParts = currentEditDate.split('-');
-                        const year = dateParts[0];
-                        const month = dateParts[1];
-                        window.location.href = `dtr.php?year=${year}&month=${month}`;
-                    } else {
-                        alert('Error saving times: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error saving times');
-                });
-        }
-
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString();
-            const dateString = now.toLocaleDateString();
-            document.getElementById('realTimeClock').innerHTML = `${dateString} ${timeString}`;
-        }
-
-        // Update clock every second
-        setInterval(updateClock, 1000);
-        updateClock(); // Initial call
-
-        function printCurrentMonth() {
-            const year = new URLSearchParams(window.location.search).get('year') || new Date().getFullYear();
-            const month = new URLSearchParams(window.location.search).get('month') || (new Date().getMonth() + 1);
-
-            const content = document.querySelector('.main-content').innerHTML;
-            const printWindow = window.open('', '', 'height=600,width=800');
-
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>DTR - ${document.querySelector('#monthDropdown').textContent}</title>
-                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                        <style>
-                            @page { size: landscape; }
-                            body {
-                                padding: 20px;
-                                font-family: Arial, sans-serif;
-                            }
-                            .calendar {
-                                width: 100%;
-                                border-collapse: collapse;
-                            }
-                            .calendar th, .calendar td {
-                                border: 1px solid #dee2e6;
-                                padding: 8px;
-                            }
-                            .calendar th {
-                                background-color: #f8f9fa;
-                                font-weight: bold;
-                            }
-                            .calendar-entry {
-                                background: #198754;
-                                color: white;
-                                padding: 4px;
-                                margin: 2px 0;
-                                border-radius: 4px;
-                                font-size: 12px;
-                            }
-                            .summary-section {
-                                margin-top: 20px;
-                                padding: 15px;
-                                border: 1px solid #dee2e6;
-                                border-radius: 5px;
-                            }
-                            .header-section {
-                                text-align: center;
-                                margin-bottom: 20px;
-                            }
-                            .header-section h2 {
-                                color: #333;
-                                margin-bottom: 5px;
-                            }
-                            .header-section p {
-                                color: #666;
-                                margin: 0;
-                            }
-                            @media print {
-                                .no-print { display: none; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="header-section">
-                            <h2>Daily Time Record</h2>
-                            <p>${document.querySelector('#monthDropdown').textContent}</p>
-                            <p>Employee: ${document.querySelector('.card-header').textContent.split(',')[1]}</p>
-                        </div>
-                        ${content}
-                        <div class="summary-section">
-                            <h4>Monthly Summary</h4>
-                            <p>Days Worked: ${document.getElementById('daysWorked').textContent}</p>
-                            <p>Average Hours/Day: ${document.getElementById('avgHours').textContent}</p>
-                            <p>Saturdays Worked: ${document.getElementById('saturdaysWorked').textContent}</p>
-                            <p>Total Hours: ${document.getElementById('totalHours').textContent}</p>
-                            <p>Total Hours with Saturday x2: ${document.getElementById('totalHoursWithSaturday').textContent}</p>
-                            <p>Total Hours Minus Lunch: ${document.getElementById('totalHoursMinusLunch').textContent}</p>
-                        </div>
-                    </body>
-                </html>
-            `);
-
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 1000);
-        }
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey) {
-                switch (e.key) {
-                    case 's':
-                        e.preventDefault();
-                        saveAllTimes();
-                        break;
-                    case 'p':
-                        e.preventDefault();
-                        printCurrentMonth();
-                        break;
-                    case 'e':
-                        e.preventDefault();
-                        exportToExcel();
-                        break;
-                }
-            }
->>>>>>> cac628e0d9f02842b122a5e258956f961a0fbf56
         });
     </script>
 
@@ -1958,50 +1422,66 @@ function calculateTotalHoursMinusLunch($user_id)
                 });
         }
 
-        // Add this function to your <script> section
-        function deleteDay(date) {
-            if (confirm('Are you sure you want to delete all entries for this day?')) {
-                playQuackSound();
-                fetch('delete_day.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            date: date
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Show success message
-                            alert('Entries deleted successfully');
+        // Update the deleteDay function
+function deleteDay(date) {
+    if (confirm('Are you sure you want to delete all entries for this day?')) {
+        playQuackSound(); // Play sound effect
+        
+        fetch('delete_day.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                date: date
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Clear the entries from the calendar
+                const dateParts = date.split('-');
+                const entryContainer = document.querySelector(`#entry-${dateParts[0]}-${dateParts[1]}-${parseInt(dateParts[2])}`);
+                if (entryContainer) {
+                    entryContainer.innerHTML = '';
+                }
 
-                            // Update all total hours displays
-                            document.getElementById('totalHours').textContent =
-                                `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
-                            document.getElementById('totalHoursWithSaturday').textContent =
-                                `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
-                            document.getElementById('totalHoursMinusLunch').textContent =
-                                `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
+                // Update the buttons
+                const dayHeader = entryContainer.parentElement.querySelector('.day-header');
+                const buttonContainer = dayHeader.querySelector('.button-container');
+                if (buttonContainer) {
+                    buttonContainer.remove();
+                }
 
-                            // Get the date parts for the URL
-                            const dateParts = date.split('-');
-                            const year = dateParts[0];
-                            const month = dateParts[1];
+                // Add the "+" button
+                dayHeader.innerHTML += `
+                    <button class='add-day btn btn-outline-primary btn-sm' type='button' 
+                            data-bs-toggle='modal' data-bs-target='#addTimeModal' 
+                            onclick='initAddModal("${date}"); playQuackSound();'>
+                        <i class='fas fa-plus'></i>
+                    </button>
+                `;
 
-                            // Refresh the page with the current year and month
-                            window.location.href = `dtr.php?year=${year}&month=${month}`;
-                        } else {
-                            alert('Error deleting entries: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error deleting entries');
-                    });
+                // Update total hours displays
+                document.getElementById('totalHours').textContent = 
+                    `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
+                document.getElementById('totalHoursWithSaturday').textContent = 
+                    `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
+                document.getElementById('totalHoursMinusLunch').textContent = 
+                    `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
+
+                // Update monthly statistics
+                updateMonthlyStatistics();
+            } else {
+                alert('Error deleting entries: ' + data.message);
             }
-        }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting entries');
+        });
+    }
+}
 
         // Add this to your <script> section
         function exportToExcel() {
