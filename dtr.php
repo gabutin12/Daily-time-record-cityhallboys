@@ -240,9 +240,6 @@ function calculateTotalHoursMinusLunch($user_id)
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <audio id="quackSound" preload="auto" style="display: none;">
-        <source src="quack.mp3" type="audio/mpeg">
-    </audio>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -967,7 +964,6 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function submitJournal() {
-            playquacksound();
             const date = document.getElementById('journalDate').value;
             const text = document.getElementById('journalText').value;
 
@@ -1011,7 +1007,6 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function in your <script> section
         function saveAllTimes() {
-            playQuackSound();
             const date = document.getElementById('datePicker').value;
             const timeInAM = document.querySelector('input[name="time_value"][value="08:00"]').value;
             const timeOutAM = document.querySelector('input[name="time_value"][value="12:00"]').value;
@@ -1065,7 +1060,6 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function in your <script> section
         function resetAllTimes() {
-            playQuackSound();
             if (confirm('Are you sure you want to reset all time entries? This action cannot be undone.')) {
                 const selectedDate = document.getElementById('datePicker').value;
 
@@ -1240,28 +1234,45 @@ function calculateTotalHoursMinusLunch($user_id)
         const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
 
         function showEditModal(date) {
-            playQuackSound();
             currentEditDate = date;
+            const modalElement = document.getElementById('editTimeModal');
+
+            // Debug log
+            console.log('Opening modal for date:', date);
+
+            // Initialize modal if not already initialized
+            if (!editTimeModal) {
+                editTimeModal = new bootstrap.Modal(modalElement);
+            }
 
             // Fetch existing records
             fetch(`get_time_records.php?date=${date}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Fetched data:', data);
                     if (data.success && data.records) {
-                        // Update modal inputs with existing values
-                        document.querySelectorAll('#editTimeModal form').forEach(form => {
-                            const timeType = form.querySelector('[name="time_type"]').value;
-                            const timeInput = form.querySelector('[name="time_value"]');
-                            if (data.records[timeType]) {
-                                timeInput.value = data.records[timeType].substring(0, 5);
-                            }
-                        });
+                        // Update time inputs
+                        modalElement.querySelector('input[name="time_type"][value="time_in_am"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_in_am ? data.records.time_in_am.substring(0, 5) : '08:00';
 
-                        // Show the modal
-                        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
-                        editModal.show();
-                    } else {
-                        throw new Error('No records found');
+                        modalElement.querySelector('input[name="time_type"][value="time_out_am"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_out_am ? data.records.time_out_am.substring(0, 5) : '12:00';
+
+                        modalElement.querySelector('input[name="time_type"][value="time_in_pm"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_in_pm ? data.records.time_in_pm.substring(0, 5) : '13:00';
+
+                        modalElement.querySelector('input[name="time_type"][value="time_out_pm"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_out_pm ? data.records.time_out_pm.substring(0, 5) : '17:30';
+
+                        editTimeModal.show();
                     }
                 })
                 .catch(error => {
@@ -1271,13 +1282,22 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function saveModalTimes() {
-            const forms = document.querySelectorAll('#editTimeModal form');
-            const times = {};
+            const modalElement = document.getElementById('editTimeModal');
 
-            forms.forEach(form => {
-                const timeType = form.querySelector('[name="time_type"]').value;
-                times[timeType] = form.querySelector('[name="time_value"]').value;
-            });
+            const times = {
+                time_in_am: modalElement.querySelector('input[name="time_type"][value="time_in_am"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value,
+                time_out_am: modalElement.querySelector('input[name="time_type"][value="time_out_am"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value,
+                time_in_pm: modalElement.querySelector('input[name="time_type"][value="time_in_pm"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value,
+                time_out_pm: modalElement.querySelector('input[name="time_type"][value="time_out_pm"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value
+            };
 
             const data = {
                 date: currentEditDate,
@@ -1291,24 +1311,32 @@ function calculateTotalHoursMinusLunch($user_id)
                     },
                     body: JSON.stringify(data)
                 })
-                .then(response => response.json())
+                .then(response => response.text().then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('Server response:', text);
+                        throw new Error('Invalid JSON response from server');
+                    }
+                }))
                 .then(data => {
                     if (data.success) {
-                        editModal.hide();
-                        // Get the date parts for the URL
-                        const dateParts = currentEditDate.split('-');
-                        const year = dateParts[0];
-                        const month = dateParts[1];
-
-                        // Refresh the page with the current year and month
-                        window.location.href = `dtr.php?year=${year}&month=${month}`;
+                        editTimeModal.hide();
+                        // Update total hours displays
+                        document.getElementById('totalHours').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
+                        document.getElementById('totalHoursWithSaturday').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
+                        document.getElementById('totalHoursMinusLunch').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
+                        window.location.reload();
                     } else {
-                        alert('Error saving times: ' + data.message);
+                        throw new Error(data.message || 'Unknown error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error saving times');
+                    alert('Error saving times: ' + error.message);
                 });
         }
 
@@ -1494,50 +1522,44 @@ function calculateTotalHoursMinusLunch($user_id)
         });
     </script>
 
-    <!-- Add this before </body> -->
-    <div class="modal fade" id="editTimeModal" tabindex="-1" aria-labelledby="editTimeModalLabel" aria-hidden="true">
+    <!-- Update the edit modal HTML structure -->
+    <div class="modal fade" id="editTimeModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editTimeModalLabel">Edit Time Entries</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Edit Time Entries</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="d-grid gap-3">
                         <form method="POST" class="d-flex align-items-center">
                             <label class="me-2">Time In (AM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="08:00">
+                            <input type="time" name="time_value" class="form-control time-input me-2">
                             <input type="hidden" name="time_type" value="time_in_am">
-                            <input type="hidden" name="date" value="">
                         </form>
 
                         <form method="POST" class="d-flex align-items-center">
                             <label class="me-2">Time Out (AM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="time" name="time_value" class="form-control time-input me-2">
                             <input type="hidden" name="time_type" value="time_out_am">
-                            <input type="hidden" name="date" value="">
                         </form>
 
                         <form method="POST" class="d-flex align-items-center">
                             <label class="me-2">Time In (PM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="12:00">
+                            <input type="time" name="time_value" class="form-control time-input me-2">
                             <input type="hidden" name="time_type" value="time_in_pm">
-                            <input type="hidden" name="date" value="">
                         </form>
 
                         <form method="POST" class="d-flex align-items-center">
                             <label class="me-2">Time Out (PM):</label>
-                            <input type="time" name="time_value" class="form-control time-input me-2" value="17:30">
+                            <input type="time" name="time_value" class="form-control time-input me-2">
                             <input type="hidden" name="time_type" value="time_out_pm">
-                            <input type="hidden" name="date" value="">
                         </form>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-success" onclick="saveModalTimes()">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
+                    <button type="button" class="btn btn-success" onclick="saveModalTimes()">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -1944,7 +1966,6 @@ function calculateTotalHoursMinusLunch($user_id)
 
         // Add this function to your <script> section
         function deleteDay(date) {
-            playQuackSound();
             if (confirm('Are you sure you want to delete all entries for this day?')) {
                 fetch('delete_day.php', {
                         method: 'POST',
@@ -1996,26 +2017,44 @@ function calculateTotalHoursMinusLunch($user_id)
 
         function showEditModal(date) {
             currentEditDate = date;
+            const modalElement = document.getElementById('editTimeModal');
+
+            // Debug log
+            console.log('Opening modal for date:', date);
+
+            // Initialize modal if not already initialized
+            if (!editTimeModal) {
+                editTimeModal = new bootstrap.Modal(modalElement);
+            }
 
             // Fetch existing records
             fetch(`get_time_records.php?date=${date}`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Fetched data:', data);
                     if (data.success && data.records) {
-                        // Update modal inputs with existing values
-                        document.querySelectorAll('#editTimeModal form').forEach(form => {
-                            const timeType = form.querySelector('[name="time_type"]').value;
-                            const timeInput = form.querySelector('[name="time_value"]');
-                            if (data.records[timeType]) {
-                                timeInput.value = data.records[timeType].substring(0, 5);
-                            }
-                        });
+                        // Update time inputs
+                        modalElement.querySelector('input[name="time_type"][value="time_in_am"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_in_am ? data.records.time_in_am.substring(0, 5) : '08:00';
 
-                        // Show the modal
-                        const editModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
-                        editModal.show();
-                    } else {
-                        throw new Error('No records found');
+                        modalElement.querySelector('input[name="time_type"][value="time_out_am"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_out_am ? data.records.time_out_am.substring(0, 5) : '12:00';
+
+                        modalElement.querySelector('input[name="time_type"][value="time_in_pm"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_in_pm ? data.records.time_in_pm.substring(0, 5) : '13:00';
+
+                        modalElement.querySelector('input[name="time_type"][value="time_out_pm"]')
+                            .closest('form')
+                            .querySelector('input[name="time_value"]').value =
+                            data.records.time_out_pm ? data.records.time_out_pm.substring(0, 5) : '17:30';
+
+                        editTimeModal.show();
                     }
                 })
                 .catch(error => {
@@ -2025,13 +2064,22 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function saveModalTimes() {
-            const forms = document.querySelectorAll('#editTimeModal form');
-            const times = {};
+            const modalElement = document.getElementById('editTimeModal');
 
-            forms.forEach(form => {
-                const timeType = form.querySelector('[name="time_type"]').value;
-                times[timeType] = form.querySelector('[name="time_value"]').value;
-            });
+            const times = {
+                time_in_am: modalElement.querySelector('input[name="time_type"][value="time_in_am"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value,
+                time_out_am: modalElement.querySelector('input[name="time_type"][value="time_out_am"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value,
+                time_in_pm: modalElement.querySelector('input[name="time_type"][value="time_in_pm"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value,
+                time_out_pm: modalElement.querySelector('input[name="time_type"][value="time_out_pm"]')
+                    .closest('form')
+                    .querySelector('input[name="time_value"]').value
+            };
 
             const data = {
                 date: currentEditDate,
@@ -2045,24 +2093,32 @@ function calculateTotalHoursMinusLunch($user_id)
                     },
                     body: JSON.stringify(data)
                 })
-                .then(response => response.json())
+                .then(response => response.text().then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('Server response:', text);
+                        throw new Error('Invalid JSON response from server');
+                    }
+                }))
                 .then(data => {
                     if (data.success) {
-                        editModal.hide();
-                        // Get the date parts for the URL
-                        const dateParts = currentEditDate.split('-');
-                        const year = dateParts[0];
-                        const month = dateParts[1];
-
-                        // Refresh the page with the current year and month
-                        window.location.href = `dtr.php?year=${year}&month=${month}`;
+                        editTimeModal.hide();
+                        // Update total hours displays
+                        document.getElementById('totalHours').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours))} Hours`;
+                        document.getElementById('totalHoursWithSaturday').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours_with_saturday))} Hours`;
+                        document.getElementById('totalHoursMinusLunch').textContent =
+                            `${formatHoursToTime(parseFloat(data.total_hours_minus_lunch))} Hours`;
+                        window.location.reload();
                     } else {
-                        alert('Error saving times: ' + data.message);
+                        throw new Error(data.message || 'Unknown error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error saving times');
+                    alert('Error saving times: ' + error.message);
                 });
         }
 
@@ -2260,7 +2316,6 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function showJournalModal(date) {
-            playquacksound();
             document.getElementById('journalDate').value = date;
 
             // Check if there's an existing journal entry
@@ -2286,7 +2341,6 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function submitJournal() {
-            playquacksound();
             const date = document.getElementById('journalDate').value;
             const department = document.getElementById('department').value;
             const text = document.getElementById('journalText').value;
@@ -2322,11 +2376,9 @@ function calculateTotalHoursMinusLunch($user_id)
             document.getElementById('department').value = '';
             document.getElementById('journalText').value = '';
             updatePreview();
-            playquacksound();
         }
 
         function deleteJournal() {
-            playquacksound();
             if (confirm('Are you sure you want to delete this journal entry? This cannot be undone.')) {
                 const date = document.getElementById('journalDate').value;
 
@@ -2357,7 +2409,6 @@ function calculateTotalHoursMinusLunch($user_id)
         }
 
         function printAllJournals() {
-            playquacksound();
             const printWindow = window.open('', '', 'height=600,width=800');
 
             fetch('get_all_journals.php')
@@ -2486,19 +2537,6 @@ function calculateTotalHoursMinusLunch($user_id)
                     alert('Error loading journal entries');
                 });
         }
-
-        function playQuackSound() {
-            const quack = new Audio('quack.mp3');
-            quack.volume = 0.5; // Set volume to 50%
-            quack.play().catch(error => console.log('Error playing sound:', error));
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add click sound to all buttons
-            document.querySelectorAll('button').forEach(button => {
-                button.addEventListener('click', playQuackSound);
-            });
-        });
     </script>
 </body>
 
