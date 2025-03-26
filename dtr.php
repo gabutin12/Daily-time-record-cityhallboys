@@ -761,6 +761,13 @@ function calculateTotalHoursMinusLunch($user_id)
             // Initialize Bootstrap modals
             addTimeModal = new bootstrap.Modal(document.getElementById('addTimeModal'));
             editTimeModal = new bootstrap.Modal(document.getElementById('editTimeModal'));
+
+            // Add quack sound to all buttons
+            document.querySelectorAll('button, .btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    playQuack();
+                });
+            });
         });
 
         function initAddModal(date) {
@@ -992,7 +999,7 @@ function calculateTotalHoursMinusLunch($user_id)
                 });
         }
 
-        // Add this function in your <script> section
+        // Add this function in your JavaScript section
         function refreshCalendar() {
             // Get current date from datepicker
             const currentDate = document.getElementById('datePicker').value;
@@ -1518,6 +1525,20 @@ function calculateTotalHoursMinusLunch($user_id)
                         exportToExcel();
                         break;
                 }
+            }
+        });
+
+        // Add this with your other JavaScript functions
+        function playQuack() {
+            const audio = document.getElementById('quackSound');
+            audio.currentTime = 0; // Reset sound to start
+            audio.play();
+        }
+
+        // Add this to your JavaScript
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('button') || e.target.matches('.btn') || e.target.closest('button') || e.target.closest('.btn')) {
+                playQuack();
             }
         });
     </script>
@@ -2538,6 +2559,11 @@ function calculateTotalHoursMinusLunch($user_id)
                 });
         }
     </script>
+
+    <audio id="quackSound" preload="auto">
+        <source src="quack.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
 </body>
 
 </html>
