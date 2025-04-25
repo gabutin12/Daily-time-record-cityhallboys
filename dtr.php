@@ -682,6 +682,8 @@ function calculateTotalHoursMinusLunch($user_id)
                 </div>
             </div>
 
+
+
             <div class="card mt-3">
                 <div class="card-header text-center bg-info text-white">
                     <i class="fas fa-clock"></i> Total Hours Rendered w/o Sat X2
@@ -768,6 +770,10 @@ function calculateTotalHoursMinusLunch($user_id)
                     playQuack();
                 });
             });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            journalModal = new bootstrap.Modal(document.getElementById('journalModal'));
         });
 
         function initAddModal(date) {
@@ -967,12 +973,38 @@ function calculateTotalHoursMinusLunch($user_id)
 
         function showJournalModal(date) {
             document.getElementById('journalDate').value = date;
-            journalModal.show();
+
+            fetch(`get_journal.php?date=${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.journal) {
+                        document.getElementById('name').value = data.journal.name || '';
+                        document.getElementById('department').value = data.journal.department || '';
+                        document.getElementById('journalText').value = data.journal.text || '';
+                    } else {
+                        document.getElementById('name').value = '';
+                        document.getElementById('department').value = '';
+                        document.getElementById('journalText').value = '';
+                    }
+                    const journalModal = new bootstrap.Modal(document.getElementById('journalModal'));
+                    journalModal.show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading journal entry');
+                });
         }
 
         function submitJournal() {
             const date = document.getElementById('journalDate').value;
+            const name = document.getElementById('name').value;
+            const department = document.getElementById('department').value;
             const text = document.getElementById('journalText').value;
+
+            if (!name || !department || !text) {
+                alert('Please fill in all fields');
+                return;
+            }
 
             fetch('save_journal.php', {
                     method: 'POST',
@@ -981,6 +1013,8 @@ function calculateTotalHoursMinusLunch($user_id)
                     },
                     body: JSON.stringify({
                         date: date,
+                        name: name,
+                        department: department,
                         text: text
                     })
                 })
@@ -988,7 +1022,9 @@ function calculateTotalHoursMinusLunch($user_id)
                 .then(data => {
                     if (data.success) {
                         alert('Journal entry saved successfully');
-                        journalModal.hide();
+                        bootstrap.Modal.getInstance(document.getElementById('journalModal')).hide();
+                        // Optionally refresh the page or update UI
+                        window.location.reload();
                     } else {
                         alert('Error saving journal entry: ' + data.message);
                     }
@@ -1636,79 +1672,56 @@ function calculateTotalHoursMinusLunch($user_id)
     </div>
 
     <!-- Update the journal modal HTML -->
-    <div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
+    <div class="modal fade" id="journalModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="journalModalLabel">Write Journal Entry</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Journal Entry</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Add tabs for Write/Preview -->
-                    <ul class="nav nav-tabs mb-3" id="journalTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="write-tab" data-bs-toggle="tab" data-bs-target="#write" type="button">Write</button>
+                    <ul class="nav nav-tabs mb-3">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#write">Write</a>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview" type="button">Preview</button>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#preview" onclick="updatePreview()">Preview</a>
                         </li>
                     </ul>
-
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="write">
                             <form id="journalForm">
                                 <input type="hidden" id="journalDate" name="date">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name:</label>
+                                    <input type="text" class="form-control" id="name" name="name" required>
+                                </div>
                                 <div class="mb-3">
                                     <label for="department" class="form-label">Department:</label>
                                     <input type="text" class="form-control" id="department" name="department" required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="journalText" class="form-label">Write your Journal/Diary below:</label>
-                                    <textarea class="form-control" id="journalText" name="journalText" rows="10" required
-                                        onkeyup="updatePreview()"></textarea>
+                                    <textarea class="form-control" id="journalText" name="journalText" rows="10" required></textarea>
                                 </div>
                             </form>
                         </div>
                         <div class="tab-pane fade" id="preview">
-                            <div class="preview-container border p-4">
-                                <div class="row border-bottom pb-3 mb-3">
-                                    <div class="col-6">
-                                        <div class="d-flex">
-                                            <strong class="me-2">Date:</strong>
-                                            <span id="previewDate" class="border-bottom border-dark"></span>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="d-flex">
-                                            <strong class="me-2">Department:</strong>
-                                            <span id="previewDepartment" class="border-bottom border-dark"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mt-3">
-                                    <strong class="d-block border-bottom pb-2 mb-3">Journal Entry:</strong>
-                                    <div id="previewText" class="p-3 border rounded bg-light"></div>
-                                </div>
-                            </div>
+                            <!-- Preview content will be dynamically updated -->
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <div class="btn-group me-auto">
-                        <button type="button" class="btn btn-warning" onclick="clearJournal()">
-                            <i class="fas fa-eraser"></i> Clear
-                        </button>
-                        <button type="button" class="btn btn-danger" onclick="deleteJournal()">
-                            <i class="fas fa-trash"></i> Delete Entry
-                        </button>
-                    </div>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="submitJournal()">Submit Journal</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteJournal()">Delete</button>
+                    <button type="button" class="btn btn-success" onclick="submitJournal()">Save Entry</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Add these before closing body tag -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Add this inside your <script> tags
@@ -2325,44 +2338,62 @@ function calculateTotalHoursMinusLunch($user_id)
         });
 
 
+        // Update the updatePreview function
         function updatePreview() {
-            // Update preview content
             const date = new Date(document.getElementById('journalDate').value).toLocaleDateString();
+            const name = document.getElementById('name').value;
             const department = document.getElementById('department').value;
             const text = document.getElementById('journalText').value;
 
             document.getElementById('previewDate').textContent = date;
+            document.getElementById('previewName').textContent = name;
             document.getElementById('previewDepartment').textContent = department;
             document.getElementById('previewText').innerHTML = text.replace(/\n/g, '<br>');
         }
 
+
+        // Replace your existing showJournalModal function with this:
         function showJournalModal(date) {
+            // Initialize modal if not already done
+            if (!journalModal) {
+                journalModal = new bootstrap.Modal(document.getElementById('journalModal'));
+            }
+
+            // Set the date
             document.getElementById('journalDate').value = date;
 
-            // Check if there's an existing journal entry
+            // Clear form fields first
+            document.getElementById('name').value = '';
+            document.getElementById('department').value = '';
+            document.getElementById('journalText').value = '';
+
+            // Fetch journal entry
             fetch(`get_journal.php?date=${date}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.success && data.journal) {
-                        document.getElementById('department').value = data.journal.department;
-                        document.getElementById('journalText').value = data.journal.text;
-                        updatePreview();
-                    } else {
-                        // Clear form for new entry
-                        document.getElementById('department').value = '';
-                        document.getElementById('journalText').value = '';
-                        updatePreview();
+                        document.getElementById('name').value = data.journal.name || '';
+                        document.getElementById('department').value = data.journal.department || '';
+                        document.getElementById('journalText').value = data.journal.text || '';
                     }
+                    // Show modal regardless of whether entry exists
                     journalModal.show();
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Error loading journal entry');
+                    alert('Error loading journal entry: ' + error.message);
                 });
         }
 
+        // Update the submitJournal function
         function submitJournal() {
             const date = document.getElementById('journalDate').value;
+            const name = document.getElementById('name').value;
             const department = document.getElementById('department').value;
             const text = document.getElementById('journalText').value;
 
@@ -2373,6 +2404,7 @@ function calculateTotalHoursMinusLunch($user_id)
                     },
                     body: JSON.stringify({
                         date: date,
+                        name: name,
                         department: department,
                         text: text
                     })
@@ -2399,6 +2431,7 @@ function calculateTotalHoursMinusLunch($user_id)
             updatePreview();
         }
 
+        // Replace or update your existing deleteJournal function
         function deleteJournal() {
             if (confirm('Are you sure you want to delete this journal entry? This cannot be undone.')) {
                 const date = document.getElementById('journalDate').value;
@@ -2416,15 +2449,18 @@ function calculateTotalHoursMinusLunch($user_id)
                     .then(data => {
                         if (data.success) {
                             alert('Journal entry deleted successfully');
+                            // Close the modal
+                            const journalModal = bootstrap.Modal.getInstance(document.getElementById('journalModal'));
                             journalModal.hide();
-                            clearJournal();
+                            // Optionally refresh the page
+                            window.location.reload();
                         } else {
-                            alert('Error deleting journal entry: ' + data.message);
+                            alert('Error deleting journal entry: ' + (data.message || 'Unknown error'));
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        alert('Error deleting journal entry');
+                        alert('Error deleting journal entry: ' + error.message);
                     });
             }
         }
@@ -2531,7 +2567,7 @@ function calculateTotalHoursMinusLunch($user_id)
                                                             <td width="33.33%" style="text-align: center;">FPC's Signature</td>
                                                         </tr>
                                                         <tr>
-                                                            <td height="50px" style="border: 1px solid black;"></td>
+                                                            <td height="50px" style="border: 1px solid black; text-align: center; vertical-align: middle;">${journal.name || ''}</td>
                                                             <td height="50px" style="border: 1px solid black;"></td>
                                                             <td height="50px" style="border: 1px solid black;"></td>
                                                         </tr>

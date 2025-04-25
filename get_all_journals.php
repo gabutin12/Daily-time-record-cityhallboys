@@ -11,7 +11,7 @@ $sql = "SELECT j.*, d.time_in_am, d.time_out_am, d.time_in_pm, d.time_out_pm
         FROM journals j 
         LEFT JOIN dtr_records d ON j.user_id = d.user_id AND j.date = d.date 
         WHERE j.user_id = ? 
-        ORDER BY j.date ASC";  // Changed from DESC to ASC
+        ORDER BY j.date ASC";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $_SESSION['id']);
@@ -24,6 +24,7 @@ while ($row = $result->fetch_assoc()) {
         'date' => $row['date'],
         'department' => $row['department'],
         'text' => $row['text'],
+        'name' => $row['name'], // Added name field
         'time_in_am' => $row['time_in_am'] ? date('h:i A', strtotime($row['time_in_am'])) : '',
         'time_out_am' => $row['time_out_am'] ? date('h:i A', strtotime($row['time_out_am'])) : '',
         'time_in_pm' => $row['time_in_pm'] ? date('h:i A', strtotime($row['time_in_pm'])) : '',

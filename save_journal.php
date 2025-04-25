@@ -1,34 +1,29 @@
 <?php
 session_start();
-require_once 'db_connect.php';
-
-if (!isset($_SESSION['id'])) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+require_once "db_connect.php";
 
 $data = json_decode(file_get_contents('php://input'), true);
 
-if (!isset($data['date']) || !isset($data['department']) || !isset($data['text'])) {
-    echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+if (!isset($_SESSION['id']) || !$data) {
+    echo json_encode(['success' => false, 'message' => 'Invalid request']);
     exit;
 }
 
-// Check if entry exists
-$sql = "INSERT INTO journals (user_id, date, department, text) 
-        VALUES (?, ?, ?, ?) 
+$user_id = $_SESSION['id'];
+$date = $data['date'];
+$name = $data['name'];
+$department = $data['department'];
+$text = $data['text'];
+
+$sql = "INSERT INTO journals (user_id, date, name, department, text) 
+        VALUES (?, ?, ?, ?, ?) 
         ON DUPLICATE KEY UPDATE 
-        department = VALUES(department), 
+        name = VALUES(name),
+        department = VALUES(department),
         text = VALUES(text)";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param(
-    "isss",
-    $_SESSION['id'],
-    $data['date'],
-    $data['department'],
-    $data['text']
-);
+$stmt->bind_param("issss", $user_id, $date, $name, $department, $text);
 
 if ($stmt->execute()) {
     echo json_encode(['success' => true]);

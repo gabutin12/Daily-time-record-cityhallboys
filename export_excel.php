@@ -82,9 +82,18 @@ function calculateTotalHoursMinusLunch($user_id)
     return formatDecimalToTime($totalHours);
 }
 
-// Set headers for Excel
+// Get username from database
+$sql = "SELECT username FROM users WHERE id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $_SESSION['id']);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$username = $user['username'];
+
+// Set headers for Excel with username
 header('Content-Type: application/vnd.ms-excel');
-header('Content-Disposition: attachment; filename="DTR_Export_' . date('Y-m-d') . '.xls"');
+header('Content-Disposition: attachment; filename="DTR_Export_' . $username . '_' . date('Y-m-d') . '.xls"');
 
 // Start HTML output
 echo '
@@ -112,12 +121,12 @@ echo '
             background: #DCE6F1;
             font-weight: bold;
             text-align: center;
-            border: 1px solid #95B3D7;
+            border: 1px solid #000000;
             padding: 6px;
             font-size: 12pt;
         }
         td {
-            border: 1px solid #95B3D7;
+            border: 1px solid #000000;
             padding: 6px;
             mso-number-format:"\\@";
             font-size: 12pt;
@@ -182,10 +191,10 @@ while ($record = $result->fetch_assoc()) {
     $rowClass = $record['day_of_week'] == 7 ? ' class="saturday"' : '';
     echo "<tr$rowClass>
         <td>" . date('Y-m-d', strtotime($record['date'])) . "</td>
-        <td class='time-cell'>" . ($record['time_in_am'] ? date('h:i A', strtotime($record['time_in_am'])) : '') . "</td>
-        <td class='time-cell'>" . ($record['time_out_am'] ? date('h:i A', strtotime($record['time_out_am'])) : '') . "</td>
-        <td class='time-cell'>" . ($record['time_in_pm'] ? date('h:i A', strtotime($record['time_in_pm'])) : '') . "</td>
-        <td class='time-cell'>" . ($record['time_out_pm'] ? date('h:i A', strtotime($record['time_out_pm'])) : '') . "</td>
+        <td class='time-cell'>" . ($record['time_in_am'] ? date('H:i', strtotime($record['time_in_am'])) : '') . "</td>
+        <td class='time-cell'>" . ($record['time_out_am'] ? date('H:i', strtotime($record['time_out_am'])) : '') . "</td>
+        <td class='time-cell'>" . ($record['time_in_pm'] ? date('H:i', strtotime($record['time_in_pm'])) : '') . "</td>
+        <td class='time-cell'>" . ($record['time_out_pm'] ? date('g:i', strtotime($record['time_out_pm'])) : '') . "</td>
         <td class='time-cell'>" . formatDecimalToTime($record['total_hours']) . "</td>
         <td class='time-cell'>" . ($record['day_of_week'] == 7 ? 'Yes' : 'No') . "</td>
     </tr>";
