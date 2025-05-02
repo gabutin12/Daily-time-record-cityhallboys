@@ -979,10 +979,12 @@ function calculateTotalHoursMinusLunch($user_id)
                 .then(data => {
                     if (data.success && data.journal) {
                         document.getElementById('name').value = data.journal.name || '';
+                        document.getElementById('hteName').value = data.journal.hte_name || ''; // Add this line
                         document.getElementById('department').value = data.journal.department || '';
                         document.getElementById('journalText').value = data.journal.text || '';
                     } else {
                         document.getElementById('name').value = '';
+                        document.getElementById('hteName').value = ''; // Add this line
                         document.getElementById('department').value = '';
                         document.getElementById('journalText').value = '';
                     }
@@ -1697,6 +1699,10 @@ function calculateTotalHoursMinusLunch($user_id)
                                     <input type="text" class="form-control" id="name" name="name" required>
                                 </div>
                                 <div class="mb-3">
+                                    <label for="hteName" class="form-label">HTE Name:</label>
+                                    <input type="text" class="form-control" id="hteName" name="hteName" required>
+                                </div>
+                                <div class="mb-3">
                                     <label for="department" class="form-label">Department:</label>
                                     <input type="text" class="form-control" id="department" name="department" required>
                                 </div>
@@ -2394,8 +2400,14 @@ function calculateTotalHoursMinusLunch($user_id)
         function submitJournal() {
             const date = document.getElementById('journalDate').value;
             const name = document.getElementById('name').value;
+            const hteName = document.getElementById('hteName').value; // Add this line
             const department = document.getElementById('department').value;
             const text = document.getElementById('journalText').value;
+
+            if (!name || !hteName || !department || !text) { // Updated validation
+                alert('Please fill in all fields');
+                return;
+            }
 
             fetch('save_journal.php', {
                     method: 'POST',
@@ -2405,6 +2417,7 @@ function calculateTotalHoursMinusLunch($user_id)
                     body: JSON.stringify({
                         date: date,
                         name: name,
+                        hte_name: hteName, // Add this line
                         department: department,
                         text: text
                     })
@@ -2414,6 +2427,7 @@ function calculateTotalHoursMinusLunch($user_id)
                     if (data.success) {
                         alert('Journal entry saved successfully');
                         journalModal.hide();
+                        window.location.reload();
                     } else {
                         alert('Error saving journal entry: ' + data.message);
                     }
@@ -2568,7 +2582,7 @@ function calculateTotalHoursMinusLunch($user_id)
                                                         </tr>
                                                         <tr>
                                                             <td height="50px" style="border: 1px solid black; text-align: center; vertical-align: middle;">${journal.name || ''}</td>
-                                                            <td height="50px" style="border: 1px solid black;"></td>
+                                                            <td height="50px" style="border: 1px solid black; text-align: center; vertical-align: middle;">${journal.hte_name || ''}</td>
                                                             <td height="50px" style="border: 1px solid black;"></td>
                                                         </tr>
                                                     </table>

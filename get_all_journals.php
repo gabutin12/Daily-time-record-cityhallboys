@@ -2,6 +2,8 @@
 session_start();
 require_once 'db_connect.php';
 
+header('Content-Type: application/json');
+
 if (!isset($_SESSION['id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
@@ -22,9 +24,10 @@ $journals = [];
 while ($row = $result->fetch_assoc()) {
     $journals[] = [
         'date' => $row['date'],
+        'name' => $row['name'],
+        'hte_name' => $row['hte_name'],  // Changed from hteName to hte_name
         'department' => $row['department'],
         'text' => $row['text'],
-        'name' => $row['name'], // Added name field
         'time_in_am' => $row['time_in_am'] ? date('h:i A', strtotime($row['time_in_am'])) : '',
         'time_out_am' => $row['time_out_am'] ? date('h:i A', strtotime($row['time_out_am'])) : '',
         'time_in_pm' => $row['time_in_pm'] ? date('h:i A', strtotime($row['time_in_pm'])) : '',
@@ -32,7 +35,4 @@ while ($row = $result->fetch_assoc()) {
     ];
 }
 
-echo json_encode([
-    'success' => true,
-    'journals' => $journals
-]);
+echo json_encode(['success' => true, 'journals' => $journals]);
